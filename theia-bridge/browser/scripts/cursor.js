@@ -9,17 +9,15 @@
 // Create WebSocket connection.
 const socket = new WebSocket('ws://localhost:8888');
 const STATES = {
-  NOT_READY: 0,
-  CALIBRATING: 1,
-  READY: 2,
+  NOT_READY: Symbol(0),
+  CALIBRATING: Symbol(1),
+  READY: Symbol(2),
 }
 
 const WEBSOCKET_MESSAGES = {
     READY: 'ready',
     GET: 'get',
 }
-
-const POLL_INTERVAL = Math.floor(1000 / 60)
 
 let currentState = STATES.NOT_READY
 let sendGetInterval = null
@@ -64,7 +62,7 @@ function drawCalibration() {
 }
 
 function clear() {
-  ctx.clearRect (0, 0, drawCanvas.width, drawCanvas.height)
+  ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height)
 }
 
 function drawCursor(x, y) {
@@ -72,37 +70,55 @@ function drawCursor(x, y) {
   ctx.fillRect(Math.round(window.innerWidth * x), Math.round(window.innerHeight * y), 25, 25);
 }
 
-// Connection opened
+// Start sending ready messages
 socket.addEventListener('open', (event) => {
-  sendGetInterval = setInterval(sendGet, 1000)
+  sendGetInterval = setInterval(sendReady, 1000)
 });
+
+// State machine
+const STATE_HANDLERS = {
+    [STATES.NOT_READY]: (event) => {
+        // When we receive a ready message, start sending get messages
+        if(event.data === 'ready!') {
+            currentState = STATES.READY
+            clearInterval(sendGetInterval)
+        } else {
+            console.log('Waiting...')
+        }
+    },
+    [STATES.CALIBRATING]: (event) => {},
+    [STATES.READY]: (event) => {
+        // Parse the data and draw the cursor
+        let data
+        try {
+            // Note, eval is dangerous, this should only be used with trusted data
+            eval(`data = ${event.data}`)
+        } catch(err) {
+            throw err
+        }
+
+        // Draw cursor on webpage
+        if(data) {
+            const [x, y] = data.left_gaze_point_on_display_area
+            requestAnimationFrame(() => {
+                clear()
+                drawCursor(x, y)
+                // This will request the server at the current framerate
+                // We may want to limit this to 60Hz on higher Hz displays
+                sendGet()
+            })
+        }
+    }
+}
+
 
 // Listen for messages
 // TODO: clean this up and add proper initial calibration
 socket.addEventListener('message', (event) => {
-    if(currentState === STATES.NOT_READY && event.data === 'ready!') {
-      currentState = STATES.READY;
-      clearInterval(sendGetInterval)
-      setInterval(sendGet, Math.floor(1000 / 60))
-    } else if(currentState === STATES.READY) {
-      let data
-      try {
-        data = JSON.parse(event.data)
-      } catch(err) {
-        // We received NaNs
-      }
-
-      // Draw cursor on webpage
-      if(data) {
-        const [x, y] = data.left_gaze_point_on_display_area
-        requestAnimationFrame(() => {
-          clear()
-          drawCursor(x, y)
-        })
-      }
-
-    } else if(currentState === STATES.NOT_READY && event.data === 'not ready!') {
-      console.log('Waiting...')
+    if(STATE_HANDLERS[currentState]) {
+        STATE_HANDLERS[currentState](event)
+    } else {
+        throw new ReferenceError('Unknown state ' + currentState)
     }
 });
 
