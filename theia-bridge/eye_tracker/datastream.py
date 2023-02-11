@@ -1,7 +1,5 @@
 import tobii_research as tr
 from . import calibration
-import time
-import asyncio
 
 
 all_notifications = (tr.EYETRACKER_NOTIFICATION_CONNECTION_LOST)

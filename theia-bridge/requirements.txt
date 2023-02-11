@@ -1,3 +1,5 @@
 # tobii_research
 # selenium
 # webdriver-manager
+# websockets
+# dotenv
