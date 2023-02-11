@@ -28,14 +28,17 @@ class Server:
             'get': self.on_get,
         }
 
+    # Function to be threaded
     def start_server(self):
         print("Starting server on port " + str(config.PORT))
         asyncio.run(self.create_server())
 
+    # Creates the server and awaits the requests
     async def create_server(self):
         async with serve(self.handle, "localhost", config.PORT):
             await asyncio.Future()  # run forever
 
+    # Finds and attaches handlers for the various endpoints
     async def handle(self, websocket):
         async for message in websocket:
             print(message)
@@ -45,13 +48,19 @@ class Server:
             else:
                 await websocket.send('Unknown message')
 
-    # handlers
+    ### Handlers ###
     async def on_ready(self, websocket):
-        await websocket.send('ready!')
+        if self.latest_gaze_data is not None:
+            await websocket.send('ready!')
+        else:
+            await websocket.send('not ready!')
     
     async def on_get(self, websocket):
         await websocket.send(json.dumps(self.latest_gaze_data))
 
+    ### End handlers ###
+
+    # A function that is called every time there is new gaze data to be read.
     def gaze_data_callback(self, gaze_data):
         self.latest_gaze_data = gaze_data
         # Print gaze points of left and right eye

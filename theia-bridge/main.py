@@ -7,6 +7,7 @@ import time
 server = Server()
 # server.init()
 driver = web.init()
+web.navigate(driver, "https://google.com")
 ds.init(server.gaze_data_callback)
 
 time.sleep(1000)
