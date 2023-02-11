@@ -14,19 +14,36 @@ const STATES = {
   READY: 2,
 }
 
-let currentState = STATES.NOT_READY
-let checkIfReadyInterval
+const WEBSOCKET_MESSAGES = {
+    READY: 'ready',
+    GET: 'get',
+}
 
+const POLL_INTERVAL = Math.floor(1000 / 60)
+
+let currentState = STATES.NOT_READY
+let sendGetInterval = null
 
 // Draw cursor
 const drawCanvas = document.createElement('canvas')
 drawCanvas.height = window.innerHeight
 drawCanvas.width = window.innerWidth
-drawCanvas.style.zIndex = '99999999'
-drawCanvas.style.position = 'fixed'
-drawCanvas.style.backgroundColor = 'rgba(0,0,0,0)'
-drawCanvas.style.top = '0'
-drawCanvas.style.left = '0'
+
+// Add styles to overlay
+Object.apply(drawCanvas.style, {
+    zIndex: '99999999',
+    position: 'fixed',
+    backgroundColor: 'rgba(0,0,0,0)',
+    top: '0',
+    left: '0',
+    pointerEvents: 'none',
+})
+
+// Update canvas size on resize
+window.addEventListener('resize', () => {
+    drawCanvas.height = window.innerHeight
+    drawCanvas.width = window.innerWidth
+})
 
 document.body.appendChild(drawCanvas)
 const ctx = drawCanvas.getContext("2d");
@@ -57,7 +74,7 @@ function drawCursor(x, y) {
 
 // Connection opened
 socket.addEventListener('open', (event) => {
-  checkIfReadyInterval = setInterval(checkIfReady, 1000)
+  sendGetInterval = setInterval(sendGet, 1000)
 });
 
 // Listen for messages
@@ -65,8 +82,8 @@ socket.addEventListener('open', (event) => {
 socket.addEventListener('message', (event) => {
     if(currentState === STATES.NOT_READY && event.data === 'ready!') {
       currentState = STATES.READY;
-      clearInterval(checkIfReadyInterval)
-      setInterval(poll, Math.floor(1000 / 60))
+      clearInterval(sendGetInterval)
+      setInterval(sendGet, Math.floor(1000 / 60))
     } else if(currentState === STATES.READY) {
       let data
       try {
@@ -91,5 +108,5 @@ socket.addEventListener('message', (event) => {
 
 drawCalibration()
 
-const checkIfReady = () => socket.send('ready');
-const poll = () => socket.send('get')
+const sendReady = () => socket.send(WEBSOCKET_MESSAGES.READY);
+const sendGet = () => socket.send(WEBSOCKET_MESSAGES.GET)
