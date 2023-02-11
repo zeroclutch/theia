@@ -46,6 +46,10 @@ function drawCalibration() {
   }
 }
 
+function clear() {
+  ctx.clearRect (0, 0, drawCanvas.width, drawCanvas.height)
+}
+
 function drawCursor(x, y) {
   ctx.fillStyle = "green";
   ctx.fillRect(Math.round(window.innerWidth * x), Math.round(window.innerHeight * y), 25, 25);
@@ -74,7 +78,10 @@ socket.addEventListener('message', (event) => {
       // Draw cursor on webpage
       if(data) {
         const [x, y] = data.left_gaze_point_on_display_area
-        requestAnimationFrame(() => drawCursor(x, y))
+        requestAnimationFrame(() => {
+          clear()
+          drawCursor(x, y)
+        })
       }
 
     } else if(currentState === STATES.NOT_READY && event.data === 'not ready!') {
