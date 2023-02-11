@@ -32,3 +32,7 @@ def getWindowSize(driver):
     print("Window size:")
     print(size)
     return size
+
+def quit(driver):
+    validateDriver(driver)
+    driver.quit()

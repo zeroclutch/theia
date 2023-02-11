@@ -15,6 +15,7 @@ class Server:
     t = None
 
     handlers = {}
+    stop_signal = asyncio.Future()
 
     # run server in a separate thread
     def __init__(self):
@@ -36,7 +37,7 @@ class Server:
     # Creates the server and awaits the requests
     async def create_server(self):
         async with serve(self.handle, "localhost", config.PORT):
-            await asyncio.Future()  # run forever
+            await self.stop_signal  # run until stop_signal is set
 
     # Finds and attaches handlers for the various endpoints
     async def handle(self, websocket):
@@ -67,3 +68,6 @@ class Server:
         print("Left eye: ({gaze_left_eye}) \t Right eye: ({gaze_right_eye})".format(
             gaze_left_eye=gaze_data['left_gaze_point_on_display_area'],
             gaze_right_eye=gaze_data['right_gaze_point_on_display_area']))
+        
+    def __exit__(self):
+        self.stop_signal.set_result(True)
