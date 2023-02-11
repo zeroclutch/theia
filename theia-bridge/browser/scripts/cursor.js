@@ -28,7 +28,7 @@ drawCanvas.height = window.innerHeight
 drawCanvas.width = window.innerWidth
 
 // Add styles to overlay
-Object.apply(drawCanvas.style, {
+Object.assign(drawCanvas.style, {
     zIndex: '99999999',
     position: 'fixed',
     backgroundColor: 'rgba(0,0,0,0)',
