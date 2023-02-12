@@ -1,4 +1,5 @@
-import eye_tracker.datastream as ds
+import eye_tracker.calibration as calibration
+import eye_tracker.datastream as datastream
 from eye_tracker.server import Server
 import browser.webpage as web
 import asyncio
@@ -12,7 +13,7 @@ async def keep_alive():
 def cleanup():
     # Cleanup
     print("[0/3] Keyboard interrupt detected. Exiting...")
-    ds.kill(server.gaze_data_callback)
+    datastream.kill(eyetracker, server.gaze_data_callback)
     print("[1/3] Stopped datastream from eye tracker.")
     web.quit(driver)
     print("[2/3] Closed browser.")
@@ -20,10 +21,11 @@ def cleanup():
     print("[3/3] Closed websocket server.")
 
 # Initialization
-server = Server()
+eyetracker = calibration.init()
+server = Server(eyetracker)
 driver = web.init()
 web.navigate(driver, "https://google.com")
-ds.init(server.gaze_data_callback)
+datastream.init(eyetracker, server.gaze_data_callback)
 
 try:
     # Keep alive

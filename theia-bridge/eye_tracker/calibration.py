@@ -1,13 +1,21 @@
-import tobii_research as tr
+try:
+    import tobii_research as tr
+except ImportError:
+    print("Warning! Tobii Research Python SDK not found. Please install it with `pip install tobii_research`. Using mock eye tracker instead.")
+    from . import mock_tobii_research as tr
 import time
+import sys
 
 def init():
     eyetracker = get_eyetracker()
-    calibrate(eyetracker)
     return eyetracker
 
 def get_eyetracker():
     found_eyetrackers = tr.find_all_eyetrackers()
+
+    # Skip on macOS
+    if(sys.platform == "darwin"):
+        return found_eyetrackers[0]
 
     # Find eye tracker
     eyetracker = found_eyetrackers[0]
@@ -16,12 +24,45 @@ def get_eyetracker():
     print("Name: " + eyetracker.device_name)
     print("Serial number: " + eyetracker.serial_number)
 
-    assert eyetracker.model == "Tobii Pro Spark"
-    
     return eyetracker
 
+def calibrate(eyetracker, point):
+    if(sys.platform == "darwin"):
+        return True
+    
+    calibration = tr.ScreenBasedCalibration(eyetracker)
+    calibration.enter_calibration_mode()
+
+    print("Entered calibration mode for eye tracker with serial number {0}.".format(eyetracker.serial_number))
+    print("Show a point on screen at {0}.".format(point))
+
+    time.sleep(0.5)
+
+    print("Collecting data at {0}.".format(point))
+
+    calibration_success = None
+    
+    if calibration.collect_data(point.x, point.y):
+        calibration_success = True
+        print("Collected data at {0}.".format(point))
+    else:
+        calibration_success = False
+        print("Failed to collect data at {0}.".format(point))
+        
+    calibration.leave_calibration_mode()
+    print("Left calibration mode for eye tracker with serial number {0}.".format(eyetracker.serial_number))
+
+    # Only apply calibration if it is valid.
+    if calibration_success:
+        calibration.compute_and_apply()
+    
+    print("Calibration result: {0}.".format(calibration_success))
+    
+    return calibration_success
+
+
 # via https://developer.tobiipro.com/tobii.research/python/reference/1.10.2.17-alpha-g85317f98/classtobii__research_1_1ScreenBasedCalibration.html
-def calibrate(eyetracker):
+def default_calibrate(eyetracker):
 
     # Perform calibration
     calibration = tr.ScreenBasedCalibration(eyetracker)
@@ -48,7 +89,7 @@ def calibrate(eyetracker):
     
     print("Computing and applying calibration.")
     calibration_result = calibration.compute_and_apply()
-    print("Compute and apply returned {0} and collected at {1} points.".
+    print("Compute and apply returned {0} and collected at {1} point.".
           format(calibration_result.status, len(calibration_result.calibration_points)))
     
     # Analyze the data and maybe remove points that weren't good.

@@ -26,7 +26,7 @@ const WebSocketMessages = {
 
 const POLLING_INTERVAL = 100
 
-let currentState = States.NOT_READY
+let currentState = States.AWAITING_CALIBRATION
 
 // Draw cursor
 const drawCanvas = document.createElement('canvas')
@@ -54,14 +54,14 @@ const ctx = drawCanvas.getContext("2d");
 
 // Calibration
 const CALIBRATION_POINTS = [
-    new Float32Array([0.5, 0.5]),
-    new Float32Array([0.1, 0.1]),
-    new Float32Array([0.1, 0.9]),
-    new Float32Array([0.9, 0.1]),
-    new Float32Array([0.9, 0.9]),
+    {x: 0.5, y: 0.5},
+    {x: 0.1, y: 0.1},
+    {x: 0.1, y: 0.9},
+    {x: 0.9, y: 0.1},
+    {x: 0.9, y: 0.9},
 ]
 
-const CALIBRATION_DURATION = 500
+const CALIBRATION_DURATION = 1000
 
 function clear() {
   ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height)
@@ -79,13 +79,13 @@ function drawCalibration(calibrationState) {
     clear()
 
     ctx.fillStyle = 'red'
-    const [x, y] = CALIBRATION_POINTS[calibrationState]
+    const {x, y} = CALIBRATION_POINTS[calibrationState]
     ctx.fillRect(
         Math.round(window.innerWidth * x),
         Math.round(window.innerHeight * y),
-        Math.max(20 * coefficient, 0),
-        Math.max(20 * coefficient, 0));
-    
+        Math.ceil(Math.max(20 * coefficient, 0)),
+        Math.ceil(Math.max(20 * coefficient, 0)));
+
     if(coefficient > 0) {
         requestAnimationFrame(() => drawCalibration(calibrationState))
     } else {
@@ -129,30 +129,37 @@ socket.addEventListener('open', (event) => {
 // State machine
 const MESSAGE_HANDLERS = {
     [States.AWAITING_CALIBRATION]: (event) => {
+        console.log('Awaiting calibration...')
         if(event.data === 'calibrate!') {
             currentState = States.CALIBRATING
-            socket.send(CALIBRATION_POINTS[0])
+
+            // Send a new message with the first calibration point
+            setTimeout(() => socket.send(WebSocketMessages.CALIBRATE), CALIBRATION_DURATION)
         } else {
             // Ask again in a bit
             setTimeout(() => socket.send(WebSocketMessages.AWAITING_CALIBRATION), POLLING_INTERVAL)
         }
     },
     [States.CALIBRATING]: (event) => {
+        console.log('Calibrating...')
         const calibrationState = parseInt(event.data)
-        const remaining = CALIBRATION_POINTS.length - calibrationState + 1
+        const remaining = CALIBRATION_POINTS.length - calibrationState
+
+        console.log(`Calibrating ${calibrationState} of ${CALIBRATION_POINTS.length} (${remaining} remaining)`)
 
         if(remaining) {
             // Animate the calibration
             requestAnimationFrame(() => drawCalibration(calibrationState))
             
             // Send our calibration message after the calibration duration
-            setTimeout(() => socket.send(CALIBRATION_POINTS[calibrationState]), CALIBRATION_DURATION)
+            setTimeout(() => socket.send(JSON.stringify(CALIBRATION_POINTS[calibrationState])), CALIBRATION_DURATION)
         } else {
             currentState = States.READYING
             socket.send(WebSocketMessages.READY)
         }
     },
     [States.READYING]: (event) => {
+        console.log('Readying...')
         // When we receive a ready message, start sending get messages
         if(event.data === 'ready!') {
             currentState = States.READY
@@ -162,6 +169,7 @@ const MESSAGE_HANDLERS = {
         }
     },
     [States.READY]: (event) => {
+        console.log('Ready!')
         // Parse the data and draw the cursor
         let data
         try {
@@ -195,8 +203,3 @@ socket.addEventListener('message', (event) => {
         throw new ReferenceError('Unknown state ' + currentState)
     }
 });
-
-drawCalibration()
-
-const sendReady = () => socket.send(WebSocketMessages.READY);
-const sendCalibrate = () => socket.send(WebSocketMessages.CALIBRATE)

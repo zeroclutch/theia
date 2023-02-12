@@ -1,24 +1,30 @@
 import asyncio
 import threading
-
-from . import config
-
-from websockets import connect
-from websockets import serve
 import json
 
-from queue import Queue
+from . import config
+from . import calibration
+
+from websockets import serve
+
 
 
 class Server:
-    latest_gaze_data = None
+    # Initialized in __init__
     t = None
+    eyetracker = None
+    handlers = None
+    
+    # Initialized in start_server
+    latest_gaze_data = None
     stop_signal = None
 
-    handlers = {}
+    # State
+    state = 'awaiting_calibration'
+    calibration_state = 0
 
     # run server in a separate thread
-    def __init__(self):
+    def __init__(self, eyetracker):
         t = threading.Thread(target=self.start_server)
         t.daemon = True
         t.start()
@@ -27,7 +33,11 @@ class Server:
         self.handlers = {
             'ready': self.on_ready,
             'get': self.on_get,
+            'awaiting_calibration': self.on_awaiting_calibration,
+            'calibrate': self.on_calibrate,
         }
+
+        self.eyetracker = eyetracker
 
     # Function to be threaded
     def start_server(self):
@@ -43,15 +53,34 @@ class Server:
     # Finds and attaches handlers for the various endpoints
     async def handle(self, websocket):
         async for message in websocket:
-            print(message)
+            print("Received message: " + message)
             handler = self.handlers.get(message)
             if(handler):
-                await handler(websocket)
+                await handler(message, websocket)
             else:
-                await websocket.send('Unknown message')
+                if self.state == 'calibrate':
+                    await self.on_calibrate(message, websocket)
 
     ### Handlers ###
-    async def on_ready(self, websocket):
+
+    async def on_awaiting_calibration(self, message, websocket):
+        self.state = 'calibrate'
+        await websocket.send('calibrate!')
+
+    async def on_calibrate(self, message, websocket):
+        if message == 'ready':
+            self.state = 'ready'
+            self.on_ready(self, websocket)
+        elif message == 'calibrate':
+            self.calibration_state = 0
+            await websocket.send(str(self.calibration_state))
+        else:
+            # If the last calibration was successful, do the next one
+            if calibration.calibrate(self.eyetracker, message) is True:
+                self.calibration_state += 1
+            await websocket.send(str(self.calibration_state))
+
+    async def on_ready(self, message, websocket):
         if self.latest_gaze_data is not None:
             await websocket.send('ready!')
         else:
