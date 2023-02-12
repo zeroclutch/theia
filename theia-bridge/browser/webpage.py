@@ -8,13 +8,13 @@ def init():
     return driver
 
 # Ensures that the driver is ready
-def validateDriver(driver):
+def validate_driver(driver):
     if driver is None:
         raise ReferenceError("Invalid selenium driver provided.")
 
 # Travels to a webpage
 def navigate(driver, url):
-    validateDriver(driver)
+    validate_driver(driver)
 
     # Load scripts
     cursor_script_path = os.path.join(os.path.dirname(__file__), "scripts", "cursor.js")
@@ -27,12 +27,12 @@ def navigate(driver, url):
     driver.execute_script(cursor_script)
 
 def getWindowSize(driver):
-    validateDriver(driver)
+    validate_driver(driver)
     size = driver.get_window_size()
     print("Window size:")
     print(size)
     return size
 
 def quit(driver):
-    validateDriver(driver)
+    validate_driver(driver)
     driver.quit()
