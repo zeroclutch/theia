@@ -17,7 +17,7 @@ def get_eyetracker():
     print("Serial number: " + eyetracker.serial_number)
 
     assert eyetracker.model == "Tobii Pro Spark"
-
+    
     return eyetracker
 
 # via https://developer.tobiipro.com/tobii.research/python/reference/1.10.2.17-alpha-g85317f98/classtobii__research_1_1ScreenBasedCalibration.html

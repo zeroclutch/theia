@@ -8,19 +8,25 @@
 
 // Create WebSocket connection.
 const socket = new WebSocket('ws://localhost:8888');
-const STATES = {
-  NOT_READY: Symbol(0),
+const States = {
+  AWAITING_CALIBRATION: Symbol(0),
   CALIBRATING: Symbol(1),
-  READY: Symbol(2),
+  NOT_READY: Symbol(2),
+  READY: Symbol(3),
 }
 
-const WEBSOCKET_MESSAGES = {
+// A list of string messages that we can send to the server
+// Note: this list does not include data messages (ArrayBuffers, Blobs, etc)
+const WebSocketMessages = {
+    AWAITING_CALIBRATION: 'awaiting_calibration',
+    CALIBRATE: 'calibrate',
     READY: 'ready',
     GET: 'get',
 }
 
-let currentState = STATES.NOT_READY
-let sendGetInterval = null
+const POLLING_INTERVAL = 100
+
+let currentState = States.NOT_READY
 
 // Draw cursor
 const drawCanvas = document.createElement('canvas')
@@ -46,24 +52,46 @@ window.addEventListener('resize', () => {
 document.body.appendChild(drawCanvas)
 const ctx = drawCanvas.getContext("2d");
 
-function drawCalibration() {
-  ctx.fillStyle = 'red'
-  let points = [
-    [0.5, 0.5],
-    [0.1, 0.1],
-    [0.1, 0.9],
-    [0.9, 0.1],
-    [0.9, 0.9],
-  ]
-  for(let point of points) {
-    const [x, y] = point
-    ctx.fillRect(Math.round(window.innerWidth * x), Math.round(window.innerHeight * y), 10, 10);
-  }
-}
+// Calibration
+const CALIBRATION_POINTS = [
+    new Float32Array([0.5, 0.5]),
+    new Float32Array([0.1, 0.1]),
+    new Float32Array([0.1, 0.9]),
+    new Float32Array([0.9, 0.1]),
+    new Float32Array([0.9, 0.9]),
+]
+
+const CALIBRATION_DURATION = 500
 
 function clear() {
   ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height)
 }
+
+let calibrationStart
+function drawCalibration(calibrationState) {
+    if(!calibrationStart) {
+        calibrationStart = performance.now()
+    }
+    const timestamp = performance.now()
+    const elapsed = timestamp - calibrationStart
+    const coefficient = 1 - elapsed/CALIBRATION_DURATION
+    
+    clear()
+
+    ctx.fillStyle = 'red'
+    const [x, y] = CALIBRATION_POINTS[calibrationState]
+    ctx.fillRect(
+        Math.round(window.innerWidth * x),
+        Math.round(window.innerHeight * y),
+        Math.max(20 * coefficient, 0),
+        Math.max(20 * coefficient, 0));
+    
+    if(coefficient > 0) {
+        requestAnimationFrame(() => drawCalibration(calibrationState))
+    } else {
+        calibrationStart = null
+    }
+  }
 
 function drawCursor(x, y) {
   ctx.fillStyle = "green";
@@ -72,22 +100,68 @@ function drawCursor(x, y) {
 
 // Start sending ready messages
 socket.addEventListener('open', (event) => {
-  sendGetInterval = setInterval(sendReady, 1000)
+  currentState = States.AWAITING_CALIBRATION
+  socket.send(WebSocketMessages.AWAITING_CALIBRATION)
 });
 
+/**
+ * Example server communication:
+ * Client: awaiting_calibration
+ * Server: 
+ * Client: awaiting_calibration
+ * Server: calibrate!
+ * Client: [0.5, 0.5]
+ * Server: 1
+ * Client: [0.1, 0.1]
+ * Server: 2
+ * Client: [0.1, 0.9]
+ * Server: 3
+ * Client: [0.9, 0.1]
+ * Server: 4
+ * Client: [0.9, 0.9]
+ * Server: 5
+ * Client: ready
+ * Server: ready!
+ * Client: get
+ * Server: EyeData
+ */
+
 // State machine
-const STATE_HANDLERS = {
-    [STATES.NOT_READY]: (event) => {
-        // When we receive a ready message, start sending get messages
-        if(event.data === 'ready!') {
-            currentState = STATES.READY
-            clearInterval(sendGetInterval)
+const MESSAGE_HANDLERS = {
+    [States.AWAITING_CALIBRATION]: (event) => {
+        if(event.data === 'calibrate!') {
+            currentState = States.CALIBRATING
+            socket.send(CALIBRATION_POINTS[0])
         } else {
-            console.log('Waiting...')
+            // Ask again in a bit
+            setTimeout(() => socket.send(WebSocketMessages.AWAITING_CALIBRATION), POLLING_INTERVAL)
         }
     },
-    [STATES.CALIBRATING]: (event) => {},
-    [STATES.READY]: (event) => {
+    [States.CALIBRATING]: (event) => {
+        const calibrationState = parseInt(event.data)
+        const remaining = CALIBRATION_POINTS.length - calibrationState + 1
+
+        if(remaining) {
+            // Animate the calibration
+            requestAnimationFrame(() => drawCalibration(calibrationState))
+            
+            // Send our calibration message after the calibration duration
+            setTimeout(() => socket.send(CALIBRATION_POINTS[calibrationState]), CALIBRATION_DURATION)
+        } else {
+            currentState = States.READYING
+            socket.send(WebSocketMessages.READY)
+        }
+    },
+    [States.READYING]: (event) => {
+        // When we receive a ready message, start sending get messages
+        if(event.data === 'ready!') {
+            currentState = States.READY
+        } else {
+            console.log('Waiting...')
+            setTimeout(() => socket.send(WebSocketMessages.READY), POLLING_INTERVAL)
+        }
+    },
+    [States.READY]: (event) => {
         // Parse the data and draw the cursor
         let data
         try {
@@ -105,7 +179,7 @@ const STATE_HANDLERS = {
                 drawCursor(x, y)
                 // This will request the server at the current framerate
                 // We may want to limit this to 60Hz on higher Hz displays
-                sendGet()
+                socket.send(WebSocketMessages.GET)
             })
         }
     }
@@ -115,8 +189,8 @@ const STATE_HANDLERS = {
 // Listen for messages
 // TODO: clean this up and add proper initial calibration
 socket.addEventListener('message', (event) => {
-    if(STATE_HANDLERS[currentState]) {
-        STATE_HANDLERS[currentState](event)
+    if(MESSAGE_HANDLERS[currentState]) {
+        MESSAGE_HANDLERS[currentState](event)
     } else {
         throw new ReferenceError('Unknown state ' + currentState)
     }
@@ -124,5 +198,5 @@ socket.addEventListener('message', (event) => {
 
 drawCalibration()
 
-const sendReady = () => socket.send(WEBSOCKET_MESSAGES.READY);
-const sendGet = () => socket.send(WEBSOCKET_MESSAGES.GET)
+const sendReady = () => socket.send(WebSocketMessages.READY);
+const sendCalibrate = () => socket.send(WebSocketMessages.CALIBRATE)
