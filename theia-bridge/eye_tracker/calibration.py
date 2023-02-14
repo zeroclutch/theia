@@ -42,21 +42,21 @@ def calibrate(eyetracker, point):
 
     calibration_success = None
     
-    if calibration.collect_data(point.x, point.y):
+    if calibration.collect_data(point.get('x'), point.get('y')):
         calibration_success = True
         print("Collected data at {0}.".format(point))
     else:
         calibration_success = False
         print("Failed to collect data at {0}.".format(point))
-        
-    calibration.leave_calibration_mode()
-    print("Left calibration mode for eye tracker with serial number {0}.".format(eyetracker.serial_number))
 
     # Only apply calibration if it is valid.
     if calibration_success:
         calibration.compute_and_apply()
     
     print("Calibration result: {0}.".format(calibration_success))
+        
+    calibration.leave_calibration_mode()
+    print("Left calibration mode for eye tracker with serial number {0}.".format(eyetracker.serial_number))
     
     return calibration_success
 

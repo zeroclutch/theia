@@ -6,6 +6,10 @@
 // 2. Receive the readablestream of information
 // 3. Render the cursor accordingly
 
+const Options = {
+  VERBOSE: true
+}
+
 // Create WebSocket connection.
 const socket = new WebSocket('ws://localhost:8888');
 const States = {
@@ -78,13 +82,19 @@ function drawCalibration(calibrationState) {
     
     clear()
 
-    ctx.fillStyle = 'red'
+    ctx.fillStyle = `rgb(255, ${Math.floor(coefficient * 255)}, 0)`
     const {x, y} = CALIBRATION_POINTS[calibrationState]
-    ctx.fillRect(
+    ctx.beginPath();
+    ctx.ellipse(
         Math.round(window.innerWidth * x),
         Math.round(window.innerHeight * y),
-        Math.ceil(Math.max(20 * coefficient, 0)),
-        Math.ceil(Math.max(20 * coefficient, 0)));
+        Math.ceil(Math.max(40 * coefficient, 0)),
+        Math.ceil(Math.max(40 * coefficient, 0)),
+        0,
+        0,
+        2 * Math.PI
+    );
+    ctx.fill()
 
     if(coefficient > 0) {
         requestAnimationFrame(() => drawCalibration(calibrationState))
@@ -94,12 +104,24 @@ function drawCalibration(calibrationState) {
   }
 
 function drawCursor(x, y) {
+  clear();
   ctx.fillStyle = "green";
-  ctx.fillRect(Math.round(window.innerWidth * x), Math.round(window.innerHeight * y), 25, 25);
+  ctx.beginPath();
+  ctx.ellipse(
+      Math.round(window.innerWidth * x),
+      Math.round(window.innerHeight * y),
+      12,
+      12,
+      0,
+      0,
+      2 * Math.PI
+  );
+
+  ctx.fill()
 }
 
 // Start sending ready messages
-socket.addEventListener('open', (event) => {
+socket.addEventListener('open', (ev) => {
   currentState = States.AWAITING_CALIBRATION
   socket.send(WebSocketMessages.AWAITING_CALIBRATION)
 });
@@ -128,9 +150,9 @@ socket.addEventListener('open', (event) => {
 
 // State machine
 const MESSAGE_HANDLERS = {
-    [States.AWAITING_CALIBRATION]: (event) => {
+    [States.AWAITING_CALIBRATION]: (ev) => {
         console.log('Awaiting calibration...')
-        if(event.data === 'calibrate!') {
+        if(ev.data === 'calibrate!') {
             currentState = States.CALIBRATING
 
             // Send a new message with the first calibration point
@@ -140,9 +162,9 @@ const MESSAGE_HANDLERS = {
             setTimeout(() => socket.send(WebSocketMessages.AWAITING_CALIBRATION), POLLING_INTERVAL)
         }
     },
-    [States.CALIBRATING]: (event) => {
+    [States.CALIBRATING]: (ev) => {
         console.log('Calibrating...')
-        const calibrationState = parseInt(event.data)
+        const calibrationState = parseInt(ev.data)
         const remaining = CALIBRATION_POINTS.length - calibrationState
 
         console.log(`Calibrating ${calibrationState} of ${CALIBRATION_POINTS.length} (${remaining} remaining)`)
@@ -158,33 +180,33 @@ const MESSAGE_HANDLERS = {
             socket.send(WebSocketMessages.READY)
         }
     },
-    [States.READYING]: (event) => {
+    [States.READYING]: (ev) => {
         console.log('Readying...')
         // When we receive a ready message, start sending get messages
-        if(event.data === 'ready!') {
+        if(ev.data === 'ready!') {
             currentState = States.READY
+            socket.send(WebSocketMessages.GET)
         } else {
             console.log('Waiting...')
             setTimeout(() => socket.send(WebSocketMessages.READY), POLLING_INTERVAL)
         }
     },
-    [States.READY]: (event) => {
+    [States.READY]: (ev) => {
         console.log('Ready!')
         // Parse the data and draw the cursor
         let data
         try {
             // Note, eval is dangerous, this should only be used with trusted data
-            eval(`data = ${event.data}`)
+            eval(`data = ${ev.data}`)
         } catch(err) {
             throw err
         }
-
+        
         // Draw cursor on webpage
         if(data) {
             const [x, y] = data.left_gaze_point_on_display_area
             requestAnimationFrame(() => {
-                clear()
-                drawCursor(x, y)
+                if(x > 0 && y > 0 && x < 1 && y < 1) drawCursor(x, y)
                 // This will request the server at the current framerate
                 // We may want to limit this to 60Hz on higher Hz displays
                 socket.send(WebSocketMessages.GET)
@@ -196,9 +218,14 @@ const MESSAGE_HANDLERS = {
 
 // Listen for messages
 // TODO: clean this up and add proper initial calibration
-socket.addEventListener('message', (event) => {
+socket.addEventListener('message', (ev) => {
+    if(Options.VERBOSE === true) {
+      console.log('message data', ev.data)
+      console.log('Current state: ', currentState)
+    }
+
     if(MESSAGE_HANDLERS[currentState]) {
-        MESSAGE_HANDLERS[currentState](event)
+        MESSAGE_HANDLERS[currentState](ev)
     } else {
         throw new ReferenceError('Unknown state ' + currentState)
     }

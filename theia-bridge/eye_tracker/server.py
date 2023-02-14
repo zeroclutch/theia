@@ -59,35 +59,40 @@ class Server:
                 await handler(message, websocket)
             else:
                 if self.state == 'calibrate':
-                    await self.on_calibrate(message, websocket)
+                    await self.on_calibrate(json.loads(message), websocket)
+
+
+    async def send(self, data, websocket):
+        print("Sending {0}".format(data))
+        return await websocket.send(data)
 
     ### Handlers ###
 
     async def on_awaiting_calibration(self, message, websocket):
         self.state = 'calibrate'
-        await websocket.send('calibrate!')
+        await self.send('calibrate!', websocket)
 
     async def on_calibrate(self, message, websocket):
         if message == 'ready':
             self.state = 'ready'
-            self.on_ready(self, websocket)
+            self.on_ready(self, message, websocket)
         elif message == 'calibrate':
             self.calibration_state = 0
-            await websocket.send(str(self.calibration_state))
+            await self.send(str(self.calibration_state), websocket)
         else:
             # If the last calibration was successful, do the next one
             if calibration.calibrate(self.eyetracker, message) is True:
                 self.calibration_state += 1
-            await websocket.send(str(self.calibration_state))
+            await self.send(str(self.calibration_state), websocket)
 
     async def on_ready(self, message, websocket):
         if self.latest_gaze_data is not None:
-            await websocket.send('ready!')
+            await self.send('ready!', websocket)
         else:
-            await websocket.send('not ready!')
+            await self.send('not ready!', websocket)
     
-    async def on_get(self, websocket):
-        await websocket.send(json.dumps(self.latest_gaze_data))
+    async def on_get(self, message, websocket):
+        await self.send(json.dumps(self.latest_gaze_data), websocket)
 
     ### End handlers ###
 
@@ -95,9 +100,9 @@ class Server:
     def gaze_data_callback(self, gaze_data):
         self.latest_gaze_data = gaze_data
         # Print gaze points of left and right eye
-        print("Left eye: ({gaze_left_eye}) \t Right eye: ({gaze_right_eye})".format(
-            gaze_left_eye=gaze_data['left_gaze_point_on_display_area'],
-            gaze_right_eye=gaze_data['right_gaze_point_on_display_area']))
+        # print("Left eye: ({gaze_left_eye}) \t Right eye: ({gaze_right_eye})".format(
+        #    gaze_left_eye=gaze_data['left_gaze_point_on_display_area'],
+        #    gaze_right_eye=gaze_data['right_gaze_point_on_display_area']))
         
     def stop(self):
         self.stop_signal.set_result(True)
