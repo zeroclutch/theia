@@ -22,6 +22,7 @@ class Server:
     # State
     state = 'awaiting_calibration'
     calibration_state = 0
+    calibration = None
 
     # run server in a separate thread
     def __init__(self, eyetracker):
@@ -70,18 +71,20 @@ class Server:
 
     async def on_awaiting_calibration(self, message, websocket):
         self.state = 'calibrate'
+        self.calibration = calibration.start_calibration(self.eyetracker)
         await self.send('calibrate!', websocket)
 
     async def on_calibrate(self, message, websocket):
         if message == 'ready':
             self.state = 'ready'
+            calibration.end_calibration(self.calibration)
             self.on_ready(self, message, websocket)
         elif message == 'calibrate':
             self.calibration_state = 0
             await self.send(str(self.calibration_state), websocket)
         else:
             # If the last calibration was successful, do the next one
-            if calibration.calibrate(self.eyetracker, message) is True:
+            if calibration.calibrate(self.calibration, message) is True:
                 self.calibration_state += 1
             await self.send(str(self.calibration_state), websocket)
 

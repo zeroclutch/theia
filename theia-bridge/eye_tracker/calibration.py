@@ -26,14 +26,16 @@ def get_eyetracker():
 
     return eyetracker
 
-def calibrate(eyetracker, point):
-    if(sys.platform == "darwin"):
-        return True
-    
+def start_calibration(eyetracker):
     calibration = tr.ScreenBasedCalibration(eyetracker)
     calibration.enter_calibration_mode()
+    return calibration
 
-    print("Entered calibration mode for eye tracker with serial number {0}.".format(eyetracker.serial_number))
+def calibrate(calibration, point):
+    if(sys.platform == "darwin"):
+        return True
+
+    print("Entered calibration mode for eye tracker.")
     print("Show a point on screen at {0}.".format(point))
 
     time.sleep(0.5)
@@ -42,23 +44,26 @@ def calibrate(eyetracker, point):
 
     calibration_success = None
     
-    if calibration.collect_data(point.get('x'), point.get('y')):
-        calibration_success = True
-        print("Collected data at {0}.".format(point))
-    else:
-        calibration_success = False
-        print("Failed to collect data at {0}.".format(point))
+    for _ in range(0, 5):
+        if calibration.collect_data(point.get('x'), point.get('y')):
+            calibration_success = True
+            print("Collected data at {0}.".format(point))
+        else:
+            calibration_success = False
+            print("Failed to collect data at {0}.".format(point))
 
-    # Only apply calibration if it is valid.
-    if calibration_success:
-        calibration.compute_and_apply()
+        # Only apply calibration if it is valid.
+        if calibration_success:
+            calibration.compute_and_apply()
     
     print("Calibration result: {0}.".format(calibration_success))
         
-    calibration.leave_calibration_mode()
-    print("Left calibration mode for eye tracker with serial number {0}.".format(eyetracker.serial_number))
     
     return calibration_success
+
+def end_calibration(calibration):
+    calibration.leave_calibration_mode()
+    print("Left calibration mode for eye tracker.")
 
 
 # via https://developer.tobiipro.com/tobii.research/python/reference/1.10.2.17-alpha-g85317f98/classtobii__research_1_1ScreenBasedCalibration.html

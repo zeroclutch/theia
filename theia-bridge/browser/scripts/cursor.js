@@ -101,15 +101,36 @@ function drawCalibration(calibrationState) {
     } else {
         calibrationStart = null
     }
-  }
+}
 
-function drawCursor(x, y) {
+function avg(a, b) {
+    return (a + b)/2
+}
+
+function drawCursor(x1, y1, x2, y2) {
+  const x = avg(x1, x2)
+  const y = avg(y1, y2)
+  
   clear();
   ctx.fillStyle = "green";
   ctx.beginPath();
   ctx.ellipse(
-      Math.round(window.innerWidth * x),
-      Math.round(window.innerHeight * y),
+      Math.round(window.innerWidth * x1),
+      Math.round(window.innerHeight * y1),
+      12,
+      12,
+      0,
+      0,
+      2 * Math.PI
+  );
+  
+  ctx.fill()
+  
+  ctx.fillStyle = "blue";
+  ctx.beginPath();
+  ctx.ellipse(
+      Math.round(window.innerWidth * x2),
+      Math.round(window.innerHeight * y2),
       12,
       12,
       0,
@@ -204,9 +225,11 @@ const MESSAGE_HANDLERS = {
         
         // Draw cursor on webpage
         if(data) {
-            const [x, y] = data.left_gaze_point_on_display_area
+            const [x1, y1] = data.left_gaze_point_on_display_area
+            const [x2, y2] = data.right_gaze_point_on_display_area
             requestAnimationFrame(() => {
-                if(x > 0 && y > 0 && x < 1 && y < 1) drawCursor(x, y)
+                drawCursor(x1, y1, x2, y2)
+                // else clear()
                 // This will request the server at the current framerate
                 // We may want to limit this to 60Hz on higher Hz displays
                 socket.send(WebSocketMessages.GET)
