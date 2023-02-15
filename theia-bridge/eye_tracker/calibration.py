@@ -44,7 +44,7 @@ def calibrate(calibration, point):
 
     calibration_success = None
     
-    for _ in range(0, 5):
+    for _ in range(0, 2):
         if calibration.collect_data(point.get('x'), point.get('y')):
             calibration_success = True
             print("Collected data at {0}.".format(point))

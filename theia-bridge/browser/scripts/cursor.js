@@ -88,8 +88,8 @@ function drawCalibration(calibrationState) {
     ctx.ellipse(
         Math.round(window.innerWidth * x),
         Math.round(window.innerHeight * y),
-        Math.ceil(Math.max(40 * coefficient, 0)),
-        Math.ceil(Math.max(40 * coefficient, 0)),
+        Math.ceil(Math.max(30 * coefficient, 10)),
+        Math.ceil(Math.max(30 * coefficient, 10)),
         0,
         0,
         2 * Math.PI
