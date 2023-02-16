@@ -45,19 +45,19 @@ def calibrate(calibration, point):
     calibration_success = None
     
     for _ in range(0, 2):
-        if calibration.collect_data(point.get('x'), point.get('y')):
+        if calibration.collect_data(point.get('x'), point.get('y')) == tr.CALIBRATION_STATUS_SUCCESS:
             calibration_success = True
             print("Collected data at {0}.".format(point))
         else:
             calibration_success = False
             print("Failed to collect data at {0}.".format(point))
-
-        # Only apply calibration if it is valid.
-        if calibration_success:
-            calibration.compute_and_apply()
     
     print("Calibration result: {0}.".format(calibration_success))
-        
+    
+    print("Computing and applying calibration.")
+    calibration_result = calibration.compute_and_apply()
+    print("Compute and apply returned {0} and collected at {1} point.".
+          format(calibration_result.status, len(calibration_result.calibration_points)))
     
     return calibration_success
 

@@ -7,7 +7,7 @@
 // 3. Render the cursor accordingly
 
 const Options = {
-  VERBOSE: true
+  VERBOSE: false
 }
 
 // Create WebSocket connection.
@@ -29,6 +29,8 @@ const WebSocketMessages = {
 }
 
 const POLLING_INTERVAL = 100
+
+const FRAME_DURATION = 1000 / 60
 
 let currentState = States.AWAITING_CALIBRATION
 
@@ -66,13 +68,39 @@ const CALIBRATION_POINTS = [
 ]
 
 const CALIBRATION_DURATION = 1000
+let calibrationStart
 
 function clear() {
   ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height)
 }
 
-let calibrationStart
+function ellipse({x, y, width, height, color, rotation = 0}) {
+    ctx.fillStyle = color
+    ctx.beginPath();
+    ctx.ellipse(
+        x,
+        y,
+        width,
+        height,
+        rotation,
+        0,
+        2 * Math.PI
+    );
+    ctx.fill()
+}
+
+let prevLoc = CALIBRATION_POINTS[0]
+const maxVelocity = 0.5
+
+const dist = (a, b) => Math.sqrt(a ** 2 + b ** 2);
+function interpolate(from, to, velocity) {
+    const x = from.x - (from.x - to.x) * velocity
+    const y = from.y - (from.y - to.y) * velocity
+    return {x, y}
+}
+
 function drawCalibration(calibrationState) {
+    console.log('drawing...')
     if(!calibrationStart) {
         calibrationStart = performance.now()
     }
@@ -82,21 +110,27 @@ function drawCalibration(calibrationState) {
     
     clear()
 
-    ctx.fillStyle = `rgb(255, ${Math.floor(coefficient * 255)}, 0)`
-    const {x, y} = CALIBRATION_POINTS[calibrationState]
-    ctx.beginPath();
-    ctx.ellipse(
-        Math.round(window.innerWidth * x),
-        Math.round(window.innerHeight * y),
-        Math.ceil(Math.max(30 * coefficient, 10)),
-        Math.ceil(Math.max(30 * coefficient, 10)),
-        0,
-        0,
-        2 * Math.PI
-    );
-    ctx.fill()
+    const nextLoc = CALIBRATION_POINTS[calibrationState] // Pass x,y
 
-    if(coefficient > 0) {
+    const { x, y } = interpolate(prevLoc, nextLoc, maxVelocity)
+
+    // Interpolate between currentX/Y nextX and nextY
+
+    const size = Math.ceil(5 * Math.sin(elapsed / 1000 * Math.PI)) + 10
+
+    ellipse({
+        x: x * window.innerWidth,
+        y: y * window.innerHeight,
+        width: size,
+        height: size,
+        color: `rgb(255,${255 * coefficient},0)`
+    })
+    
+
+    // Copy over positions
+    prevLoc.x = x
+    prevLoc.y = y
+    if(elapsed < CALIBRATION_DURATION) {
         requestAnimationFrame(() => drawCalibration(calibrationState))
     } else {
         calibrationStart = null
@@ -108,8 +142,8 @@ function avg(a, b) {
 }
 
 function drawCursor(x1, y1, x2, y2) {
-  const x = avg(x1, x2)
-  const y = avg(y1, y2)
+//   const x = avg(x1, x2)
+//   const y = avg(y1, y2)
   
   clear();
   ctx.fillStyle = "green";
