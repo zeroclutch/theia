@@ -43,10 +43,11 @@ drawCanvas.width = window.innerWidth
 Object.assign(drawCanvas.style, {
     zIndex: '99999999',
     position: 'fixed',
-    backgroundColor: 'rgba(0,0,0,0)',
+    backgroundColor: 'rgba(255,255,255,1)',
     top: '0',
     left: '0',
     pointerEvents: 'none',
+    transition: 'all 0.5s ease-out'
 })
 
 // Update canvas size on resize
@@ -92,7 +93,8 @@ function ellipse({x, y, width, height, color, rotation = 0}) {
 let prevLoc = CALIBRATION_POINTS[0]
 const maxVelocity = 0.5
 
-const dist = (a, b) => Math.sqrt(a ** 2 + b ** 2);
+const dist = (x1, y1, x2, y2) => Math.sqrt((x2-x1) ** 2 + (y2-y1) ** 2);
+
 function interpolate(from, to, velocity) {
     const x = from.x - (from.x - to.x) * velocity
     const y = from.y - (from.y - to.y) * velocity
@@ -123,7 +125,7 @@ function drawCalibration(calibrationState) {
         y: y * window.innerHeight,
         width: size,
         height: size,
-        color: `rgb(255,${255 * coefficient},0)`
+        color: `rgb(${255 * coefficient},13,255)`,
     })
     
 
@@ -141,10 +143,53 @@ function avg(a, b) {
     return (a + b)/2
 }
 
+let prevSize = null
+
 function drawCursor(x1, y1, x2, y2) {
-//   const x = avg(x1, x2)
-//   const y = avg(y1, y2)
-  
+   const x = avg(x1, x2)
+   const y = avg(y1, y2)
+
+   clear()
+
+    let size = dist(
+        window.innerWidth * x1,
+        window.innerHeight * y1,
+        window.innerWidth * x2,
+        window.innerHeight * y2
+    )
+
+    if(prevSize) {
+        size = prevSize + (size- prevSize) * 0.1
+    }
+
+    prevSize = size
+    
+    let screenX = Math.round(window.innerWidth * x)
+    let screenY = Math.round(window.innerHeight * y)
+
+   ellipse({
+        x: screenX,
+        y: screenY,
+        width: size,
+        height: size,
+        color: '#ff0d72', // Pinkish red
+    })
+
+    if(size < 15) {
+        console.log('clicked!')
+        let ev = new MouseEvent('click', {
+            'view': window,
+            'bubbles': true,
+            'cancelable': true,
+            'screenX': x,
+            'screenY': y
+        });
+    
+        let el = document.elementFromPoint(screenX, screenY)
+    
+        el.dispatchEvent(ev);
+    }
+  /*
   clear();
   ctx.fillStyle = "green";
   ctx.beginPath();
@@ -173,6 +218,7 @@ function drawCursor(x1, y1, x2, y2) {
   );
 
   ctx.fill()
+  */
 }
 
 // Start sending ready messages
@@ -241,13 +287,15 @@ const MESSAGE_HANDLERS = {
         if(ev.data === 'ready!') {
             currentState = States.READY
             socket.send(WebSocketMessages.GET)
+
+            // Remove background
+            drawCanvas.style.backgroundColor = 'rgba(255,255,255,0)'
         } else {
             console.log('Waiting...')
             setTimeout(() => socket.send(WebSocketMessages.READY), POLLING_INTERVAL)
         }
     },
     [States.READY]: (ev) => {
-        console.log('Ready!')
         // Parse the data and draw the cursor
         let data
         try {

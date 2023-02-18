@@ -24,7 +24,7 @@ def cleanup():
 eyetracker = calibration.init()
 server = Server(eyetracker)
 driver = web.init()
-web.navigate(driver, "https://google.com")
+web.navigate(driver, "https://aimtrainer.io/challenge")
 datastream.init(eyetracker, server.gaze_data_callback)
 
 try:
