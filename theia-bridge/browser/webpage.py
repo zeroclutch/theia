@@ -3,7 +3,10 @@ from webdriver_manager.chrome import ChromeDriverManager
 import os
 
 def init():
-    driver = webdriver.Chrome(ChromeDriverManager().install())
+    options = webdriver.ChromeOptions()
+    options.add_extension('./extension.crx')
+    ChromeDriverManager().install()
+    driver = webdriver.Chrome(options=options)
     driver.maximize_window()
     return driver
 

@@ -1,0 +1,1 @@
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --pack-extension=C:\Users\Eyetracker\theia\theia-bridge\browser\extension --pack-extension-key=C:\Users\Eyetracker\theia\theia-bridge\browser\extension.pem
