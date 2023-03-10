@@ -21,15 +21,8 @@ def validate_driver(driver):
 def navigate(driver, url):
     validate_driver(driver)
 
-    # Load scripts
-    cursor_script_path = os.path.join(os.path.dirname(__file__), "scripts", "cursor.js")
-    cursor_script = open(cursor_script_path, "r").read()
-
     # Navigate
     driver.get(url)
-
-    # Inject scripts
-    driver.execute_script(cursor_script)
 
 def getWindowSize(driver):
     validate_driver(driver)

@@ -70,13 +70,17 @@ class Server:
     ### Handlers ###
 
     async def on_awaiting_calibration(self, message, websocket):
-        self.state = 'calibrate'
-        self.calibration = calibration.start_calibration(self.eyetracker)
-        await self.send('calibrate!', websocket)
+        print(self.state)
+        if self.state == 'ready':
+            # If we've already calibrated, go to ready state
+            await self.send('ready!', websocket)
+        else:
+            self.state = 'calibrate'
+            self.calibration = calibration.start_calibration(self.eyetracker)
+            await self.send('calibrate!', websocket)
 
     async def on_calibrate(self, message, websocket):
         if message == 'ready':
-            self.state = 'ready'
             calibration.end_calibration(self.calibration)
             self.on_ready(self, message, websocket)
         elif message == 'calibrate':
@@ -90,6 +94,7 @@ class Server:
 
     async def on_ready(self, message, websocket):
         if self.latest_gaze_data is not None:
+            self.state = 'ready'
             await self.send('ready!', websocket)
         else:
             await self.send('not ready!', websocket)
