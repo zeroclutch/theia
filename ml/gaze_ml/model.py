@@ -1,11 +1,3 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Apr 21 16:35:06 2017
-
-@author: raimondas
-"""
-
 from collections import OrderedDict
 import os
 from distutils.dir_util import mkpath
@@ -39,7 +31,7 @@ def load(model, model_dir, config, model_name=None):
     fpath_model = "%s/%s" % (logdir, model_name)
     print (fpath_model)
     if os.path.exists(fpath_model) and (model_name is not None):
-        print "Loading model: %s" % fpath_model
+        print ("Loading model: %s" % fpath_model)
 
         package = torch.load(fpath_model, map_location=lambda storage, loc: storage)
         epoch = package['epoch']+1 if not(package['epoch'] == 'N/A') else 1
@@ -58,7 +50,7 @@ def load(model, model_dir, config, model_name=None):
         print ("done.")
     else:
         epoch = 1
-        print "Pretrained model not found"
+        print ("Pretrained model not found")
     return model_name, epoch
 
 def save(model, model_dir, epoch, step,config):
@@ -146,7 +138,6 @@ class BatchRNN(nn.Module):
         return x
 
 
-#%%
 class gazeNET(nn.Module):
     def __init__(self, config, num_classes, seed=220617):
         super(gazeNET, self).__init__()

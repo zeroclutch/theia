@@ -1,9 +1,4 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-"""
-@author: rz
-@emai
-"""
+
 import json
 from collections import OrderedDict
 import numpy as np
@@ -65,12 +60,12 @@ class Config(object):
         with open(self.param_file, 'r') as f:
             self.params = json.load(f, object_pairs_hook=OrderedDict)
         if not(current_params is None) and not (current_params == self.params):
-            print "TRAINING PARAMETERS CHANGED"
+            print ("TRAINING PARAMETERS CHANGED")
             for k, p in current_params.iteritems():
                 if not(p == self.params[k]):
-                    print self.bcolors.WARNING + \
+                    print (self.bcolors.WARNING + \
                           "%s: %s --> %s" % (k, p, self.params[k]) + \
-                          self.bcolors.ENDC
+                          self.bcolors.ENDC)
             return True
     def save_params(self, params=None):
         if not(params):

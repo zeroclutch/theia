@@ -1,11 +1,3 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Apr 21 12:40:20 2017
-
-@author: raimondas
-"""
-
 #%% imports
 import os, sys, glob
 from distutils.dir_util import mkpath
@@ -134,5 +126,3 @@ for fpath in tqdm(FILES[:]):
     spath = '%s/%s'%(sdir, fname)
     etdata_pr.save(spath)
     etdata_pr.plot(show=False, save=True, spath='%s'%spath)
-
-

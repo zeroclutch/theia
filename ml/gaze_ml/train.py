@@ -1,23 +1,14 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Apr 21 12:40:20 2017
-
-@author: raimondas
-"""
-
-#%% imports
 import os, sys, glob, time
 import itertools
 from distutils.dir_util import mkpath
 from tqdm import tqdm
 
 import numpy as np
-#import matplotlib.pyplot as plt
-#plt.ioff()
+import matplotlib.pyplot as plt
+plt.ioff()
 
-#import seaborn as sns
-#sns.set_style("ticks")
+import seaborn as sns
+sns.set_style("ticks")
 
 ###
 import json
@@ -31,7 +22,7 @@ import torch
 from torch.autograd import Variable
 
 from tensorboard import summary
-from tensorboard import SummaryWriter
+from tensorboard import FileWriter
 
 from utils_lib import utils
 from utils_lib.data_loader import EMDataset, GazeDataLoader, load_npy_files

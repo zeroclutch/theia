@@ -1,9 +1,3 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-"""
-@author: rz
-@email: r.zemblys@tf.su.lt
-"""
 import itertools
 
 import numpy as np
@@ -185,7 +179,7 @@ class ETData():
 
             if kwargs['source']=='array':
                 if not fpath.dtype == ETData.dtype:
-                    print "Error. Data types do not match"
+                    print ("Error. Data types do not match")
                     return False
                 self.data = fpath
 

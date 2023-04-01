@@ -21,7 +21,6 @@ def load_npy_files(glob_mask, config):
 class EventParser(object):
     def __init__(self, config):
         """
-
         """
         super(EventParser, self).__init__()
         self.config = config
@@ -138,7 +137,6 @@ def _collate_fn(batch):
 
 class RandomSampler(Sampler):
     """Samples elements randomly, without replacement.
-
     Arguments:
         data_source (Dataset): dataset to sample from
     """

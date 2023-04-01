@@ -1,10 +1,3 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Feb 16 16:24:07 2017
-
-@author: raimondas
-"""
 #%% imports
 import os, sys, glob
 import itertools
@@ -304,6 +297,3 @@ for _de in data_export:
 
 
 sys.exit()
-
-
-
