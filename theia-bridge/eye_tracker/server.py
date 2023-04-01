@@ -4,10 +4,11 @@ import json
 
 from . import config
 from . import calibration
+from . import cursor as cur
 
 from websockets import serve
 
-
+cursor = cur.Cursor()
 
 class Server:
     # Initialized in __init__
@@ -17,11 +18,14 @@ class Server:
     
     # Initialized in start_server
     latest_gaze_data = None
+    cursor = None
+    latest_cursor_pos = None
+    latest_cursor_state = None
     stop_signal = None
 
     # State
     state = 'awaiting_calibration'
-    calibration_state = 0
+    calibration_state = 0 # 0: fixation. 1: movement
     calibration = None
 
     # run server in a separate thread
@@ -39,6 +43,7 @@ class Server:
         }
 
         self.eyetracker = eyetracker
+        self.cursor = cursor
 
     # Function to be threaded
     def start_server(self):
@@ -70,13 +75,17 @@ class Server:
     ### Handlers ###
 
     async def on_awaiting_calibration(self, message, websocket):
-        self.state = 'calibrate'
-        self.calibration = calibration.start_calibration(self.eyetracker)
-        await self.send('calibrate!', websocket)
+        print(self.state)
+        if self.state == 'ready':
+            # If we've already calibrated, go to ready state
+            await self.send('ready!', websocket)
+        else:
+            self.state = 'calibrate'
+            self.calibration = calibration.start_calibration(self.eyetracker)
+            await self.send('calibrate!', websocket)
 
     async def on_calibrate(self, message, websocket):
         if message == 'ready':
-            self.state = 'ready'
             calibration.end_calibration(self.calibration)
             self.on_ready(self, message, websocket)
         elif message == 'calibrate':
@@ -89,23 +98,24 @@ class Server:
             await self.send(str(self.calibration_state), websocket)
 
     async def on_ready(self, message, websocket):
-        if self.latest_gaze_data is not None:
+        if self.latest_cursor_pos is not None:
+            self.state = 'ready'
             await self.send('ready!', websocket)
         else:
             await self.send('not ready!', websocket)
     
     async def on_get(self, message, websocket):
-        await self.send(json.dumps(self.latest_gaze_data), websocket)
+        await self.send(json.dumps([self.latest_cursor_pos, self.latest_cursor_state]), websocket)
 
     ### End handlers ###
 
     # A function that is called every time there is new gaze data to be read.
     def gaze_data_callback(self, gaze_data):
         self.latest_gaze_data = gaze_data
-        # Print gaze points of left and right eye
-        # print("Left eye: ({gaze_left_eye}) \t Right eye: ({gaze_right_eye})".format(
-        #    gaze_left_eye=gaze_data['left_gaze_point_on_display_area'],
-        #    gaze_right_eye=gaze_data['right_gaze_point_on_display_area']))
+        if(self.cursor is not None):
+            self.cursor.update(gaze_data)
+            self.latest_cursor_pos = self.cursor.get_new_pos()
+            self.latest_cursor_state = self.cursor.get_new_state()
         
     def stop(self):
         self.stop_signal.set_result(True)

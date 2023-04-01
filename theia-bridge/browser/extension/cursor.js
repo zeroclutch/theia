@@ -6,21 +6,24 @@
 // 2. Receive the readablestream of information
 // 3. Render the cursor accordingly
 
+// Ensure extension script is not injected twice
+var __CURSOR_JS_LOADED__
 
-
-
+;(function() {
+if(__CURSOR_JS_LOADED__) return
+__CURSOR_JS_LOADED__ = true
 
 const Options = {
-  VERBOSE: false
+    VERBOSE: false
 }
 
 // Create WebSocket connection.
 const socket = new WebSocket('ws://localhost:8888');
 const States = {
-  AWAITING_CALIBRATION: Symbol(0),
-  CALIBRATING: Symbol(1),
-  NOT_READY: Symbol(2),
-  READY: Symbol(3),
+AWAITING_CALIBRATION: Symbol(0),
+CALIBRATING: Symbol(1),
+NOT_READY: Symbol(2),
+READY: Symbol(3),
 }
 
 // A list of string messages that we can send to the server
@@ -69,10 +72,10 @@ const ctx = drawCanvas.getContext("2d");
 
 // Calibration
 const CALIBRATION_POINTS = [
-    //{x: 0.5, y: 0.5},
+    {x: 0.5, y: 0.5},
     {x: 0.1, y: 0.1},
     {x: 0.1, y: 0.9},
-    //{x: 0.9, y: 0.1},
+    {x: 0.9, y: 0.1},
     {x: 0.9, y: 0.9},
 ]
 
@@ -80,7 +83,7 @@ const CALIBRATION_DURATION = 1000
 let calibrationStart
 
 function clear() {
-  ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height)
+ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height)
 }
 
 function ellipse({x, y, width, height, color, rotation = 0}) {
@@ -154,79 +157,83 @@ function avg(a, b) {
 let prevSize = null
 
 function drawCursor(x,y) {
-   clear()
+    clear()
+ 
+     let size = 20
+ 
+     if(prevSize) {
+         size = prevSize + (size- prevSize) * 0.1
+     }
+ 
+     prevSize = size
+     
+     let screenX = Math.round(window.innerWidth * x)
+     let screenY = Math.round(window.innerHeight * y)
+ 
+    ellipse({
+         x: screenX,
+         y: screenY,
+         width: size,
+         height: size,
+         color: '#ff0d72', // Pinkish red
+     })
+   /*
+   clear();
+   ctx.fillStyle = "green";
+   ctx.beginPath();
+   ctx.ellipse(
+       Math.round(window.innerWidth * x1),
+       Math.round(window.innerHeight * y1),
+       12,
+       12,
+       0,
+       0,
+       2 * Math.PI
+   );
+   
+   ctx.fill()
+   
+   ctx.fillStyle = "blue";
+   ctx.beginPath();
+   ctx.ellipse(
+       Math.round(window.innerWidth * x2),
+       Math.round(window.innerHeight * y2),
+       12,
+       12,
+       0,
+       0,
+       2 * Math.PI
+   );
+ 
+   ctx.fill()
+   */
+ }
+ 
+ function click(x,y) {
+     if(performance.now() - lastClick > CLICK_TIMEOUT) {
+         console.log('clicked!')
+         let screenX = Math.round(window.innerWidth * x)
+        let screenY = Math.round(window.innerHeight * y)
 
-    let size = 20
-
-    if(prevSize) {
-        size = prevSize + (size- prevSize) * 0.1
-    }
-
-    prevSize = size
-    
-    let screenX = Math.round(window.innerWidth * x)
-    let screenY = Math.round(window.innerHeight * y)
-
-   ellipse({
-        x: screenX,
-        y: screenY,
-        width: size,
-        height: size,
-        color: '#ff0d72', // Pinkish red
-    })
-  /*
-  clear();
-  ctx.fillStyle = "green";
-  ctx.beginPath();
-  ctx.ellipse(
-      Math.round(window.innerWidth * x1),
-      Math.round(window.innerHeight * y1),
-      12,
-      12,
-      0,
-      0,
-      2 * Math.PI
-  );
-  
-  ctx.fill()
-  
-  ctx.fillStyle = "blue";
-  ctx.beginPath();
-  ctx.ellipse(
-      Math.round(window.innerWidth * x2),
-      Math.round(window.innerHeight * y2),
-      12,
-      12,
-      0,
-      0,
-      2 * Math.PI
-  );
-
-  ctx.fill()
-  */
-}
-
-function click() {
-    if(performance.now() - lastClick < CLICK_TIMEOUT) {
-        console.log('clicked!')
-        let ev = new MouseEvent('click', {
-            'view': window,
-            'bubbles': true,
-            'cancelable': true,
-            'screenX': x,
-            'screenY': y
-        });
-
-        let el = document.elementFromPoint(screenX, screenY)
-
-        el.dispatchEvent(ev);
-    }
-}
+         let ev = new MouseEvent('click', {
+             'view': window,
+             'bubbles': true,
+             'cancelable': true,
+             'screenX': screenX,
+             'screenY': screenY
+         });
+ 
+         let el = document.elementFromPoint(screenX, screenY)
+ 
+         el.dispatchEvent(ev);
+        lastClick = performance.now()
+     }
+ }
 
 // Start sending ready messages
 socket.addEventListener('open', (ev) => {
-  currentState = States.AWAITING_CALIBRATION
-  socket.send(WebSocketMessages.AWAITING_CALIBRATION)
+    currentState = States.AWAITING_CALIBRATION
+    socket.send(WebSocketMessages.AWAITING_CALIBRATION)
 });
 
 /**
@@ -255,7 +262,10 @@ socket.addEventListener('open', (ev) => {
 const MESSAGE_HANDLERS = {
     [States.AWAITING_CALIBRATION]: (ev) => {
         console.log('Awaiting calibration...')
-        if(ev.data === 'calibrate!') {
+        if(ev.data === 'ready!') {
+            currentState = States.READYING
+            socket.send(WebSocketMessages.READY)
+        } else if(ev.data === 'calibrate!') {
             currentState = States.CALIBRATING
 
             // Send a new message with the first calibration point
@@ -266,6 +276,11 @@ const MESSAGE_HANDLERS = {
         }
     },
     [States.CALIBRATING]: (ev) => {
+        // Check if we've already calibrated
+        if(ev.data === 'ready!') {
+            currentState = States.READYING
+            socket.send(WebSocketMessages.READY)
+        } else {
         console.log('Calibrating...')
         const calibrationState = parseInt(ev.data)
         const remaining = CALIBRATION_POINTS.length - calibrationState
@@ -281,6 +296,7 @@ const MESSAGE_HANDLERS = {
         } else {
             currentState = States.READYING
             socket.send(WebSocketMessages.READY)
+        }
         }
     },
     [States.READYING]: (ev) => {
@@ -301,23 +317,25 @@ const MESSAGE_HANDLERS = {
         // Parse the data and draw the cursor
         let data
         try {
-            // Note, eval is dangerous, this should only be used with trusted data
-            data = JSON.parse(ev.data)
+            data = JSON.parse(ev.data.replace(/NaN/gm, 'null'))
         } catch(err) {
             throw err
         }
+
+        console.log('data', data)
         
         // Draw cursor on webpage
         if(data) {
             const [pos, state] = data
+            const [x, y] = pos
+            if(state === 1) { click(x,y) }
             requestAnimationFrame(() => {
-                drawCursor(pos[0], pos[1])
+                drawCursor(x,y)
                 // else clear()
                 // This will request the server at the current framerate
                 // We may want to limit this to 60Hz on higher Hz displays
                 socket.send(WebSocketMessages.GET)
             })
-            if(state === 0) { click() }
         }
     }
 }
@@ -327,8 +345,8 @@ const MESSAGE_HANDLERS = {
 // TODO: clean this up and add proper initial calibration
 socket.addEventListener('message', (ev) => {
     if(Options.VERBOSE === true) {
-      console.log('message data', ev.data)
-      console.log('Current state: ', currentState)
+    console.log('message data', ev.data)
+    console.log('Current state: ', currentState)
     }
 
     if(MESSAGE_HANDLERS[currentState]) {
@@ -337,3 +355,5 @@ socket.addEventListener('message', (ev) => {
         throw new ReferenceError('Unknown state ' + currentState)
     }
 });
+
+})()
