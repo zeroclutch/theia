@@ -38,6 +38,10 @@ const FRAME_DURATION = 1000 / 60
 
 let currentState = States.AWAITING_CALIBRATION
 
+// Clicking
+const CLICK_TIMEOUT = 500
+let lastClick = performance.now()
+
 // Draw cursor
 const drawCanvas = document.createElement('canvas')
 drawCanvas.height = window.innerHeight
@@ -65,10 +69,10 @@ const ctx = drawCanvas.getContext("2d");
 
 // Calibration
 const CALIBRATION_POINTS = [
-    {x: 0.5, y: 0.5},
+    //{x: 0.5, y: 0.5},
     {x: 0.1, y: 0.1},
     {x: 0.1, y: 0.9},
-    {x: 0.9, y: 0.1},
+    //{x: 0.9, y: 0.1},
     {x: 0.9, y: 0.9},
 ]
 
@@ -149,18 +153,10 @@ function avg(a, b) {
 
 let prevSize = null
 
-function drawCursor(x1, y1, x2, y2) {
-   const x = avg(x1, x2)
-   const y = avg(y1, y2)
-
+function drawCursor(x,y) {
    clear()
 
-    let size = dist(
-        window.innerWidth * x1,
-        window.innerHeight * y1,
-        window.innerWidth * x2,
-        window.innerHeight * y2
-    )
+    let size = 20
 
     if(prevSize) {
         size = prevSize + (size- prevSize) * 0.1
@@ -178,21 +174,6 @@ function drawCursor(x1, y1, x2, y2) {
         height: size,
         color: '#ff0d72', // Pinkish red
     })
-
-    if(size < 15) {
-        console.log('clicked!')
-        let ev = new MouseEvent('click', {
-            'view': window,
-            'bubbles': true,
-            'cancelable': true,
-            'screenX': x,
-            'screenY': y
-        });
-    
-        let el = document.elementFromPoint(screenX, screenY)
-    
-        el.dispatchEvent(ev);
-    }
   /*
   clear();
   ctx.fillStyle = "green";
@@ -223,6 +204,23 @@ function drawCursor(x1, y1, x2, y2) {
 
   ctx.fill()
   */
+}
+
+function click() {
+    if(performance.now() - lastClick < CLICK_TIMEOUT) {
+        console.log('clicked!')
+        let ev = new MouseEvent('click', {
+            'view': window,
+            'bubbles': true,
+            'cancelable': true,
+            'screenX': x,
+            'screenY': y
+        });
+
+        let el = document.elementFromPoint(screenX, screenY)
+
+        el.dispatchEvent(ev);
+    }
 }
 
 // Start sending ready messages
@@ -304,22 +302,22 @@ const MESSAGE_HANDLERS = {
         let data
         try {
             // Note, eval is dangerous, this should only be used with trusted data
-            eval(`data = ${ev.data}`)
+            data = JSON.parse(ev.data)
         } catch(err) {
             throw err
         }
         
         // Draw cursor on webpage
         if(data) {
-            const [x1, y1] = data.left_gaze_point_on_display_area
-            const [x2, y2] = data.right_gaze_point_on_display_area
+            const [pos, state] = data
             requestAnimationFrame(() => {
-                drawCursor(x1, y1, x2, y2)
+                drawCursor(pos[0], pos[1])
                 // else clear()
                 // This will request the server at the current framerate
                 // We may want to limit this to 60Hz on higher Hz displays
                 socket.send(WebSocketMessages.GET)
             })
+            if(state === 0) { click() }
         }
     }
 }
