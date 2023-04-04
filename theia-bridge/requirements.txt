@@ -1,5 +1,7 @@
+# For reference only. Use parent requirements.txt
 # tobii_research
 # selenium
 # webdriver-manager
 # websockets
 # dotenv
+# numpy

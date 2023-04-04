@@ -58,7 +58,7 @@ class Cursor:
         std_y = math.sqrt(sum_y2 / count - mean_y ** 2)
 
         # print (std_x, std_y)
-        print("std_x: {0}, std_y: {1}".format(std_x, std_y))
+        # print("std_x: {0}, std_y: {1}".format(std_x, std_y))
 
         # If the standard deviation is too high, the cursor is moving too fast
         if std_x < 0.1 or std_y < 0.1:
