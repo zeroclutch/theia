@@ -22,7 +22,7 @@ class Gravity:
     def __init__(self):
         pass
 
-    # Run the simulation until the maximum duration is reached or a stop signal is received
+    # Returns a numpy array with the adjusted node position.
     def apply_node_gravity(self, node_pos_array, cursor_pos_array):
         # Define the initial positions and velocities of the objects
         cursor_pos = np.array(cursor_pos_array)  # 2D vector for the cursor position
@@ -54,6 +54,4 @@ class Gravity:
             print(node)
 
     def set_nodes(self, nodes):
-        # TODO: Perform cleaning up of nodes
-        print(nodes)
         self.nodes = nodes

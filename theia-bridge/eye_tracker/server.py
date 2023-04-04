@@ -14,10 +14,6 @@ from websockets import serve
 cursor = cur.Cursor()
 gravity = grav.Gravity()
 
-# States
-CURSOR_FIXATION = 0
-CURSOR_SACCADE = 1
-
 class Server:
     # Initialized in __init__
     t = None
@@ -70,7 +66,7 @@ class Server:
     # Finds and attaches handlers for the various endpoints
     async def handle(self, websocket):
         async for message in websocket:
-            print("Received message: " + message)
+            # print("Received message: " + message)
             handler = self.handlers.get(message)
             if(handler):
                 await handler(message, websocket)
@@ -80,14 +76,16 @@ class Server:
 
 
     async def send(self, data, websocket):
-        print("Sending {0}".format(data))
+        # print("Sending {0}".format(data))
         return await websocket.send(data)
 
     ### Handlers ###
 
 
     async def on_awaiting_calibration(self, message, websocket):
-        print(self.state)
+        # Empty node list on nav
+        self.gravity.set_nodes([])
+
         if self.state == 'ready':
             # If we've already calibrated, go to ready state
             await self.send('ready!', websocket)
@@ -120,14 +118,13 @@ class Server:
             await self.send('not ready!', websocket)
     
     async def on_get(self, message, websocket):
-        cursor_pos = self.latest_cursor_pos
-        if self.latest_cursor_state == CURSOR_FIXATION:
+        if self.latest_cursor_state == cur.CURSOR_FIXATION:
             # TODO: use gravitational model
             pass
-        elif self.latest_cursor_state == CURSOR_SACCADE:
+        elif self.latest_cursor_state == cur.CURSOR_SACCADE:
             pass
             # do nothing
-        await self.send(json.dumps([cursor_pos, self.latest_cursor_state]), websocket)
+        await self.send(json.dumps([self.latest_cursor_pos, self.latest_cursor_state]), websocket)
 
     ### End handlers ###
 
@@ -137,7 +134,10 @@ class Server:
         if(self.cursor is not None):
             self.cursor.update(gaze_data)
             self.latest_cursor_pos = self.cursor.get_new_pos()
-            self.latest_cursor_state = self.cursor.get_new_state()
+            self.latest_cursor_state = cur.CURSOR_SACCADE
+            if self.cursor.should_click():
+                print("Should be clicking!")
+                web.click(self.driver, self.latest_cursor_pos[0], self.latest_cursor_pos[1])
         
     def stop(self):
         self.stop_signal.set_result(True)
