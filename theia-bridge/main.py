@@ -1,7 +1,7 @@
 import eye_tracker.calibration as calibration
 import eye_tracker.datastream as datastream
 from eye_tracker.server import Server
-import browser.webpage as web
+import eye_tracker.webpage as web
 import asyncio
 
 stop_signal = asyncio.Future()
@@ -22,9 +22,9 @@ def cleanup():
 
 # Initialization
 eyetracker = calibration.init()
-server = Server(eyetracker)
 driver = web.init()
-web.navigate(driver, "https://aimtrainer.io/challenge")
+server = Server(eyetracker, driver)
+web.navigate(driver, "https://humanbenchmark.com/tests/aim")
 datastream.init(eyetracker, server.gaze_data_callback)
 
 try:

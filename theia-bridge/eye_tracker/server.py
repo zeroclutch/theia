@@ -4,32 +4,37 @@ import json
 
 from . import config
 from . import calibration
+
 from . import cursor as cur
+from . import gravity as grav
+from . import webpage as web
 
 from websockets import serve
 
 cursor = cur.Cursor()
+gravity = grav.Gravity()
 
 class Server:
     # Initialized in __init__
     t = None
     eyetracker = None
+    driver = None
     handlers = None
     
     # Initialized in start_server
     latest_gaze_data = None
     cursor = None
     latest_cursor_pos = None
-    latest_cursor_state = None
+    latest_cursor_state = None # 0: fixation. 1: saccade
     stop_signal = None
 
     # State
     state = 'awaiting_calibration'
-    calibration_state = 0 # 0: fixation. 1: movement
+    calibration_state = 0 
     calibration = None
 
     # run server in a separate thread
-    def __init__(self, eyetracker):
+    def __init__(self, eyetracker, driver):
         t = threading.Thread(target=self.start_server)
         t.daemon = True
         t.start()
@@ -43,7 +48,9 @@ class Server:
         }
 
         self.eyetracker = eyetracker
+        self.driver = driver
         self.cursor = cursor
+        self.gravity = gravity
 
     # Function to be threaded
     def start_server(self):
@@ -59,7 +66,7 @@ class Server:
     # Finds and attaches handlers for the various endpoints
     async def handle(self, websocket):
         async for message in websocket:
-            print("Received message: " + message)
+            # print("Received message: " + message)
             handler = self.handlers.get(message)
             if(handler):
                 await handler(message, websocket)
@@ -69,13 +76,16 @@ class Server:
 
 
     async def send(self, data, websocket):
-        print("Sending {0}".format(data))
+        # print("Sending {0}".format(data))
         return await websocket.send(data)
 
     ### Handlers ###
 
+
     async def on_awaiting_calibration(self, message, websocket):
-        print(self.state)
+        # Empty node list on nav
+        self.gravity.set_nodes([])
+
         if self.state == 'ready':
             # If we've already calibrated, go to ready state
             await self.send('ready!', websocket)
@@ -98,6 +108,9 @@ class Server:
             await self.send(str(self.calibration_state), websocket)
 
     async def on_ready(self, message, websocket):
+        # Register and update nodes
+        self.gravity.set_nodes(web.get_nodes(self.driver))
+
         if self.latest_cursor_pos is not None:
             self.state = 'ready'
             await self.send('ready!', websocket)
@@ -105,7 +118,13 @@ class Server:
             await self.send('not ready!', websocket)
     
     async def on_get(self, message, websocket):
-        await self.send(json.dumps([self.latest_cursor_pos, self.latest_cursor_state]), websocket)
+        cursor_pos = self.latest_cursor_pos
+        if self.latest_cursor_state == cur.CURSOR_FIXATION:
+            cursor_pos = self.gravity.apply_gravity(self.latest_cursor_pos)
+            pass
+        else:
+            pass
+        await self.send(json.dumps([cursor_pos, self.latest_cursor_state]), websocket)
 
     ### End handlers ###
 
@@ -115,7 +134,10 @@ class Server:
         if(self.cursor is not None):
             self.cursor.update(gaze_data)
             self.latest_cursor_pos = self.cursor.get_new_pos()
-            self.latest_cursor_state = self.cursor.get_new_state()
+            self.latest_cursor_state = cur.CURSOR_SACCADE
+            if self.cursor.should_click():
+                print(f"Should be clicking! {self.latest_cursor_pos[0]} {self.latest_cursor_pos[1]}")
+                web.click(self.driver, self.latest_cursor_pos[0], self.latest_cursor_pos[1], self.calibration)
         
     def stop(self):
         self.stop_signal.set_result(True)
