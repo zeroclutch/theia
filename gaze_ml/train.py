@@ -33,6 +33,9 @@ import model as model_func
 
 import copy
 
+##from numpy import genfromtxt
+##my_data = genfromtxt('my_file.csv', delimiter=',')
+
 #%% functions
 
 def get_arguments():
