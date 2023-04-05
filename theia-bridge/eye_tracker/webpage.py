@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.actions.action_builder import ActionBuilder
 from selenium.common import exceptions
 import os
 
@@ -28,6 +29,7 @@ def navigate(driver, url):
     driver.get(url)
 
 def get_window_size(driver):
+    validate_driver(driver)
     return driver.execute_script("return { width: window.innerWidth, height: window.innerHeight }")
 
 def get_nodes(driver):
@@ -62,14 +64,34 @@ def get_nodes(driver):
     return nodes
 
 
-def click(driver, x, y):
+def click(driver, x, y, calibration):
     validate_driver(driver)
-    elem = driver.find_element(By.TAG_NAME, "body")
-    window = get_window_size(driver)
-    pos_x = round(x * window['width'])
-    pos_y = round(y * window['height'])
-    ActionChains(driver, 1).move_to_element_with_offset(elem, round(elem.rect['width'] / 2), round(elem.rect['height'] / 2)).move_by_offset(pos_x, pos_y).click().perform()
-    print(f"Clicking at {pos_x}, {pos_y}")
+    try:
+        elem = driver.find_element(By.TAG_NAME, "html")
+        window = get_window_size(driver)
+        
+        # Target position
+        pos_x = round(x * window['width'])
+        pos_y = round(y * window['height'])
+
+        # Offset position
+        offset_x = -round(elem.rect['x'] + elem.rect['width']  / 2)
+        offset_y = -round(elem.rect['y'] + elem.rect['height'] / 2)
+
+        print(f"Offset at {offset_x}, {offset_y}")
+        print(f"Clicking at {pos_x}, {pos_y}")
+
+        # ActionChains(driver).move_to_element_with_offset(elem, offset_x, offset_y).move_by_offset(pos_x, pos_y).click().perform()
+        action = ActionBuilder(driver)
+        action.pointer_action.move_to_location(pos_x, pos_y)
+        action.pointer_action.click()
+        action.perform()
+        print("Clicked!!!!")
+
+        # Continuous calibration
+        # Flow: Queue click -> flash element -> log eye values + wait a minimum of 250ms -> perform click -> recompute calibration model
+    except:
+        raise
 
 def quit(driver):
     validate_driver(driver)

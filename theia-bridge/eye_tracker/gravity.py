@@ -15,28 +15,29 @@ class Gravity:
     t = 0.0
     frame_count = 0
 
-    r_distance_cutoff = 0.05
+    r_distance_cutoff = 0.1
 
     nodes = []
 
     def __init__(self):
         pass
 
-    # Returns a numpy array with the adjusted node position.
-    def apply_node_gravity(self, node_pos_array, cursor_pos_array):
+    def get_node_distance(self, node_pos_array, cursor_pos_array):
         # Define the initial positions and velocities of the objects
         cursor_pos = np.array(cursor_pos_array)  # 2D vector for the cursor position
         node_pos = np.array(node_pos_array)  # 2D vector for the node position
-        cursor_vel = np.array([0.0, 0.0])  # 2D vector for the cursor velocity
 
         # Calculate the distance and direction between the objects
         r_vector = node_pos - cursor_pos
         r_distance = np.linalg.norm(r_vector)
         r_direction = r_vector / r_distance
 
-        if(r_distance > self.r_distance_cutoff):
-            return cursor_pos_array
-        
+        return (r_distance, r_direction)
+
+    # Returns a numpy array with the adjusted node position.
+    def apply_node_gravity(self, cursor_pos, r_distance, r_direction):
+        cursor_vel = np.array([0.0, 0.0])  # 2D vector for the cursor velocity
+
         # Calculate the gravitational force between the objects
         f_gravity = self.G * self.m_node * self.m_cursor / r_distance**2 * r_direction
         
@@ -47,11 +48,24 @@ class Gravity:
         cursor_vel += a_cursor * self.dt
         cursor_pos += cursor_vel * self.dt
 
-        return cursor_pos
+        return list(cursor_pos)
 
-    def apply_gravity(self, nodes, cursor_pos):
-        for node in nodes:
-            print(node)
+    def apply_gravity(self, cursor_pos):
+        closest_node = None
+        closest_node_distance = 100
+        closest_distance, closest_direction = None
+
+        for node in self.nodes:
+            (r_distance, r_direction) = self.get_node_distance([node['x'], node['y']], cursor_pos)
+            if (r_distance < self.r_distance_cutoff) and (r_distance < closest_node_distance):
+                closest_node = node
+                closest_distance  = r_distance
+                closest_direction = r_direction
+        
+        if closest_node is not None:
+            return self.apply_node_gravity(cursor_pos, closest_distance, closest_direction)
+        else:
+            return cursor_pos
 
     def set_nodes(self, nodes):
         self.nodes = nodes

@@ -118,13 +118,13 @@ class Server:
             await self.send('not ready!', websocket)
     
     async def on_get(self, message, websocket):
+        cursor_pos = self.latest_cursor_pos
         if self.latest_cursor_state == cur.CURSOR_FIXATION:
-            # TODO: use gravitational model
+            # cursor_pos = self.gravity.apply_gravity(self.latest_cursor_pos)
             pass
-        elif self.latest_cursor_state == cur.CURSOR_SACCADE:
+        else:
             pass
-            # do nothing
-        await self.send(json.dumps([self.latest_cursor_pos, self.latest_cursor_state]), websocket)
+        await self.send(json.dumps([cursor_pos, self.latest_cursor_state]), websocket)
 
     ### End handlers ###
 
@@ -136,8 +136,8 @@ class Server:
             self.latest_cursor_pos = self.cursor.get_new_pos()
             self.latest_cursor_state = cur.CURSOR_SACCADE
             if self.cursor.should_click():
-                print("Should be clicking!")
-                web.click(self.driver, self.latest_cursor_pos[0], self.latest_cursor_pos[1])
+                print(f"Should be clicking! {self.latest_cursor_pos[0]} {self.latest_cursor_pos[1]}")
+                web.click(self.driver, self.latest_cursor_pos[0], self.latest_cursor_pos[1], self.calibration)
         
     def stop(self):
         self.stop_signal.set_result(True)
