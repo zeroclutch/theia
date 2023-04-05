@@ -120,7 +120,7 @@ class Server:
     async def on_get(self, message, websocket):
         cursor_pos = self.latest_cursor_pos
         if self.latest_cursor_state == cur.CURSOR_FIXATION:
-            # cursor_pos = self.gravity.apply_gravity(self.latest_cursor_pos)
+            cursor_pos = self.gravity.apply_gravity(self.latest_cursor_pos)
             pass
         else:
             pass

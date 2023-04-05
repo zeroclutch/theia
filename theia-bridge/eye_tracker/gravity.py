@@ -2,11 +2,11 @@ import numpy as np
 
 class Gravity:
     # Set the gravitational constant
-    G = 6.67430e-11
+    G = 6.67430#e-11
 
     # Define the masses of the objects
-    m_node = 1.0  # Mass of the node
-    m_cursor = 0.001  # Mass of the cursor (assumed to be small)
+    m_node = 16.0  # Mass of the node
+    m_cursor = 1.0  # Mass of the cursor (assumed to be small)
 
     # Set the time step of the simulation
     dt = 1/60
@@ -15,7 +15,7 @@ class Gravity:
     t = 0.0
     frame_count = 0
 
-    r_distance_cutoff = 0.1
+    r_distance_cutoff = 0.15
 
     nodes = []
 
@@ -63,6 +63,7 @@ class Gravity:
                 closest_direction = r_direction
         
         if closest_node is not None:
+            print("Readjusting cursor...")
             return self.apply_node_gravity(cursor_pos, closest_distance, closest_direction)
         else:
             return cursor_pos
