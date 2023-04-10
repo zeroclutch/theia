@@ -70,7 +70,7 @@ class Gravity:
                 closest_direction = r_direction
         
         if closest_node is not None:
-            print(f"Readjusting cursor from {cursor_pos[0]},{cursor_pos[1]} to {closest_node['x']},{closest_node['y']} ")
+            # print(f"Readjusting cursor from {cursor_pos[0]},{cursor_pos[1]} to {closest_node['x']},{closest_node['y']} ")
             return self.apply_node_gravity(cursor_pos, closest_distance, closest_direction)
         else:
             return cursor_pos

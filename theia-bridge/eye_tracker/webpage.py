@@ -64,7 +64,7 @@ def get_nodes(driver):
     return nodes
 
 
-def click(driver, x, y, calibration):
+def click(driver, x, y):
     validate_driver(driver)
     if x > 1 or x < 0 or y > 1 or y < 0:
         return 0

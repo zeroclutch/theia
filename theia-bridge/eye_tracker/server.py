@@ -125,7 +125,14 @@ class Server:
         
         if self.cursor.should_click():
             print(f"Should be clicking! {cursor_pos[0]} {cursor_pos[1]}")
-            web.click(self.driver, cursor_pos[0], cursor_pos[1], self.calibration)
+
+            # Perform click actions
+            web.click(self.driver, cursor_pos[0], cursor_pos[1])
+
+            # Update nodes on click
+            self.cursor.gravity.set_nodes(web.get_nodes(self.driver))
+
+            # Calibrate a single point
 
         await self.send(json.dumps([cursor_pos, cur.CURSOR_SACCADE]), websocket)  # State currently disabled
 

@@ -6,10 +6,6 @@
 // 2. Receive the readablestream of information
 // 3. Render the cursor accordingly
 
-
-
-
-
 const Options = {
   VERBOSE: false
 }
@@ -337,3 +333,11 @@ socket.addEventListener('message', (ev) => {
         throw new ReferenceError('Unknown state ' + currentState)
     }
 });
+
+requestIdleCallback(() => {
+    var links = document.links, i, length;
+
+    for (i = 0, length = links.length; i < length; i++) {
+        links[i].target == '_blank' && links[i].removeAttribute('target');
+    }
+})
