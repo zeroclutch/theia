@@ -66,6 +66,9 @@ def get_nodes(driver):
 
 def click(driver, x, y, calibration):
     validate_driver(driver)
+    if x > 1 or x < 0 or y > 1 or y < 0:
+        return 0
+    
     try:
         elem = driver.find_element(By.TAG_NAME, "html")
         window = get_window_size(driver)
@@ -82,7 +85,7 @@ def click(driver, x, y, calibration):
         print(f"Clicking at {pos_x}, {pos_y}")
 
         # ActionChains(driver).move_to_element_with_offset(elem, offset_x, offset_y).move_by_offset(pos_x, pos_y).click().perform()
-        action = ActionBuilder(driver)
+        action = ActionBuilder(driver, duration=1)
         action.pointer_action.move_to_location(pos_x, pos_y)
         action.pointer_action.click()
         action.perform()

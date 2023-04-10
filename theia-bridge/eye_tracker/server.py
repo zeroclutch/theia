@@ -6,13 +6,11 @@ from . import config
 from . import calibration
 
 from . import cursor as cur
-from . import gravity as grav
 from . import webpage as web
 
 from websockets import serve
 
 cursor = cur.Cursor()
-gravity = grav.Gravity()
 
 class Server:
     # Initialized in __init__
@@ -50,7 +48,6 @@ class Server:
         self.eyetracker = eyetracker
         self.driver = driver
         self.cursor = cursor
-        self.gravity = gravity
 
     # Function to be threaded
     def start_server(self):
@@ -84,7 +81,7 @@ class Server:
 
     async def on_awaiting_calibration(self, message, websocket):
         # Empty node list on nav
-        self.gravity.set_nodes([])
+        self.cursor.gravity.set_nodes([])
 
         if self.state == 'ready':
             # If we've already calibrated, go to ready state
@@ -109,35 +106,36 @@ class Server:
 
     async def on_ready(self, message, websocket):
         # Register and update nodes
-        self.gravity.set_nodes(web.get_nodes(self.driver))
+        self.cursor.gravity.set_nodes(web.get_nodes(self.driver))
 
-        if self.latest_cursor_pos is not None:
+        if self.cursor.get_new_pos() is not None:
             self.state = 'ready'
             await self.send('ready!', websocket)
         else:
             await self.send('not ready!', websocket)
     
     async def on_get(self, message, websocket):
-        cursor_pos = self.latest_cursor_pos
-        if self.latest_cursor_state == cur.CURSOR_FIXATION:
-            cursor_pos = self.gravity.apply_gravity(self.latest_cursor_pos)
-            pass
+        cursor_pos = None
+        cursor_state = self.cursor.get_new_state()
+
+        if cursor_state == cur.CURSOR_FIXATION:
+            cursor_pos = self.cursor.get_adjusted_pos()
         else:
-            pass
-        await self.send(json.dumps([cursor_pos, self.latest_cursor_state]), websocket)
+            cursor_pos = self.cursor.get_new_pos() 
+        
+        if self.cursor.should_click():
+            print(f"Should be clicking! {cursor_pos[0]} {cursor_pos[1]}")
+            web.click(self.driver, cursor_pos[0], cursor_pos[1], self.calibration)
+
+        await self.send(json.dumps([cursor_pos, cur.CURSOR_SACCADE]), websocket)  # State currently disabled
 
     ### End handlers ###
 
     # A function that is called every time there is new gaze data to be read.
     def gaze_data_callback(self, gaze_data):
-        self.latest_gaze_data = gaze_data
         if(self.cursor is not None):
             self.cursor.update(gaze_data)
-            self.latest_cursor_pos = self.cursor.get_new_pos()
-            self.latest_cursor_state = cur.CURSOR_SACCADE
-            if self.cursor.should_click():
-                print(f"Should be clicking! {self.latest_cursor_pos[0]} {self.latest_cursor_pos[1]}")
-                web.click(self.driver, self.latest_cursor_pos[0], self.latest_cursor_pos[1], self.calibration)
+            
         
     def stop(self):
         self.stop_signal.set_result(True)
