@@ -2,7 +2,7 @@ import numpy as np
 
 class Gravity:
     # Set the gravitational constant
-    G = 3e-3
+    G = 4e-3
 
     # Define the masses of the objects
     m_node = 1.0  # Mass of the node
@@ -15,8 +15,8 @@ class Gravity:
     t = 0.0
     frame_count = 0
 
-    r_distance_cutoff = 0.25 # Distance cutoff for gravitational model 
-    r_min_distance = 0.01 # The distance at which we can assume the points are the same
+    r_distance_cutoff = 0.08 # Distance cutoff for gravitational model 
+    r_min_distance = 0.008 # The distance at which we can assume the points are the same
 
     nodes = []
 

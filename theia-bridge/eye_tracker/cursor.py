@@ -19,8 +19,16 @@ class Cursor:
 
     last_cursor_pos = []
     
-    MAX_BUFFER_SIZE = 30
+    MAX_BUFFER_SIZE = 10 # can modify
     BUFFER_DURATION = MAX_BUFFER_SIZE / 60 # 60Hz
+
+    WEIGHTED_AVG_FACTOR = 0.8 # can modify
+    OLD_COEFFICIENT = 1 - WEIGHTED_AVG_FACTOR / (MAX_BUFFER_SIZE - 1)
+    LATEST_COEFFICIENT = 1 + WEIGHTED_AVG_FACTOR
+
+    MAX_STD_X = 0.125
+    MAX_STD_Y = 0.125
+    MAX_DIST = 0.1
 
     # Clicking
     CLICK_TIMEOUT = 1500
@@ -63,6 +71,9 @@ class Cursor:
     def get_adjusted_pos(self):
         self.last_cursor_pos = self.gravity.apply_gravity(self.last_cursor_pos)
         return self.last_cursor_pos
+    
+    def dist(self, a, b):
+        return math.sqrt( math.pow(a[0] - b[0], 2) + math.pow(a[1] - b[1], 2) )
 
     def get_new_state(self):
         count = self.MAX_BUFFER_SIZE
@@ -74,8 +85,25 @@ class Cursor:
         sum_y = 0
         sum_x2 = 0
         sum_y2 = 0
+
+        # If we are too far from the target point, cancel the fixation
+        if self.dist(self.buffer[i], self.last_cursor_pos) > self.MAX_DIST:
+            return CURSOR_SACCADE
+            
         while i != max:
+            # Weighted average/std dev
+            # Care more about recent values
+            coefficient = self.OLD_COEFFICIENT
+            if i == self.buffer_index:
+                coefficient = self.LATEST_COEFFICIENT
+
             x, y = self.buffer[i]
+
+            # Add coefficients
+            x *= coefficient
+            y *= coefficient
+
+            # Calculate mean and std dev
             sum_x += x
             sum_y += y
             sum_x2 += x ** 2
@@ -93,7 +121,7 @@ class Cursor:
         # print("std_x: {0}, std_y: {1}".format(std_x, std_y))
 
         # If the standard deviation is too high, the cursor is moving too fast
-        if std_x < 0.1 or std_y < 0.1:
+        if std_x < self.MAX_STD_X or std_y < self.MAX_STD_Y:
             self.state = CURSOR_FIXATION
         else:
             self.state = CURSOR_SACCADE

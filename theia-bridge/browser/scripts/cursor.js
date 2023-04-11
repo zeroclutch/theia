@@ -26,6 +26,7 @@ const WebSocketMessages = {
     CALIBRATE: 'calibrate',
     READY: 'ready',
     GET: 'get',
+    CLICK: 'click',
 }
 
 const POLLING_INTERVAL = 100
@@ -149,7 +150,12 @@ function avg(a, b) {
 
 let prevSize = null
 
-function drawCursor(x,y) {
+const COLORS = [
+    '#ff0d72',
+    '#e84d9a'
+]
+
+function drawCursor(x,y,state) {
    clear()
 
     let size = 20
@@ -168,38 +174,8 @@ function drawCursor(x,y) {
         y: screenY,
         width: size,
         height: size,
-        color: '#ff0d72', // Pinkish red
+        color: COLORS[state], // Pinkish red
     })
-  /*
-  clear();
-  ctx.fillStyle = "green";
-  ctx.beginPath();
-  ctx.ellipse(
-      Math.round(window.innerWidth * x1),
-      Math.round(window.innerHeight * y1),
-      12,
-      12,
-      0,
-      0,
-      2 * Math.PI
-  );
-  
-  ctx.fill()
-  
-  ctx.fillStyle = "blue";
-  ctx.beginPath();
-  ctx.ellipse(
-      Math.round(window.innerWidth * x2),
-      Math.round(window.innerHeight * y2),
-      12,
-      12,
-      0,
-      0,
-      2 * Math.PI
-  );
-
-  ctx.fill()
-  */
 }
 
 function click() {
@@ -307,13 +283,12 @@ const MESSAGE_HANDLERS = {
         if(data) {
             const [pos, state] = data
             requestAnimationFrame(() => {
-                drawCursor(pos[0], pos[1])
+                drawCursor(pos[0], pos[1], state)
                 // else clear()
                 // This will request the server at the current framerate
                 // We may want to limit this to 60Hz on higher Hz displays
                 socket.send(WebSocketMessages.GET)
             })
-            if(state === 0) { click() }
         }
     }
 }
@@ -340,4 +315,9 @@ requestIdleCallback(() => {
     for (i = 0, length = links.length; i < length; i++) {
         links[i].target == '_blank' && links[i].removeAttribute('target');
     }
+})
+
+document.addEventListener('click', event => {
+    event.preventDefault();
+    socket.send(WebSocketMessages.CLICK)
 })
