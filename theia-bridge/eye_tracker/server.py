@@ -43,6 +43,7 @@ class Server:
             'get': self.on_get,
             'awaiting_calibration': self.on_awaiting_calibration,
             'calibrate': self.on_calibrate,
+            'click': self.on_click,
         }
 
         self.eyetracker = eyetracker
@@ -115,6 +116,20 @@ class Server:
             await self.send('not ready!', websocket)
     
     async def on_get(self, message, websocket):
+        (cursor_pos, cursor_state) = self.get_cursor_data()
+        
+        if self.cursor.should_click():
+            self.click(cursor_pos)
+
+        await self.send(json.dumps([cursor_pos, cursor_state]), websocket)
+
+    async def on_click(self, message, websocket):
+        print("received click")
+        (cursor_pos, cursor_state) = self.get_cursor_data()
+        self.click(cursor_pos)
+
+    ### End handlers ###
+    def get_cursor_data(self):
         cursor_pos = None
         cursor_state = self.cursor.get_new_state()
 
@@ -123,20 +138,19 @@ class Server:
         else:
             cursor_pos = self.cursor.get_new_pos() 
         
-        if self.cursor.should_click():
-            print(f"Should be clicking! {cursor_pos[0]} {cursor_pos[1]}")
+        return (cursor_pos, cursor_state)
 
-            # Perform click actions
-            web.click(self.driver, cursor_pos[0], cursor_pos[1])
+    def click(self, cursor_pos):
+        print(f"Should be clicking! {cursor_pos[0]} {cursor_pos[1]}")
 
-            # Update nodes on click
-            self.cursor.gravity.set_nodes(web.get_nodes(self.driver))
+        # Perform click actions
+        web.click(self.driver, cursor_pos[0], cursor_pos[1])
 
-            # Calibrate a single point
+        # Update nodes on click
+        self.cursor.gravity.set_nodes(web.get_nodes(self.driver))
 
-        await self.send(json.dumps([cursor_pos, cur.CURSOR_SACCADE]), websocket)  # State currently disabled
-
-    ### End handlers ###
+        # Calibrate a single point
+        # TODO: add calibration
 
     # A function that is called every time there is new gaze data to be read.
     def gaze_data_callback(self, gaze_data):

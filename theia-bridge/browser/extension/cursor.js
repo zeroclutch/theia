@@ -33,6 +33,7 @@ const WebSocketMessages = {
     CALIBRATE: 'calibrate',
     READY: 'ready',
     GET: 'get',
+    CLICK: 'click',
 }
 
 const POLLING_INTERVAL = 100
@@ -156,58 +157,34 @@ function avg(a, b) {
 
 let prevSize = null
 
-function drawCursor(x,y) {
-    clear()
- 
-     let size = 20
- 
-     if(prevSize) {
-         size = prevSize + (size- prevSize) * 0.1
-     }
- 
-     prevSize = size
-     
-     let screenX = Math.round(window.innerWidth * x)
-     let screenY = Math.round(window.innerHeight * y)
- 
-    ellipse({
-         x: screenX,
-         y: screenY,
-         width: size,
-         height: size,
-         color: '#ff0d72', // Pinkish red
-     })
-   /*
-   clear();
-   ctx.fillStyle = "green";
-   ctx.beginPath();
-   ctx.ellipse(
-       Math.round(window.innerWidth * x1),
-       Math.round(window.innerHeight * y1),
-       12,
-       12,
-       0,
-       0,
-       2 * Math.PI
-   );
-   
-   ctx.fill()
-   
-   ctx.fillStyle = "blue";
-   ctx.beginPath();
-   ctx.ellipse(
-       Math.round(window.innerWidth * x2),
-       Math.round(window.innerHeight * y2),
-       12,
-       12,
-       0,
-       0,
-       2 * Math.PI
-   );
- 
-   ctx.fill()
-   */
- }
+
+const CURSOR_COLORS = [
+    '#ff0d72',
+    '#e84d9a'
+]
+
+function drawCursor(x,y,state) {
+   clear()
+
+    let size = 20
+
+    if(prevSize) {
+        size = prevSize + (size- prevSize) * 0.1
+    }
+
+    prevSize = size
+    
+    let screenX = Math.round(window.innerWidth * x)
+    let screenY = Math.round(window.innerHeight * y)
+
+   ellipse({
+        x: screenX,
+        y: screenY,
+        width: size,
+        height: size,
+        color: CURSOR_COLORS[state], // Pinkish red
+    })
+}
  
  function click(x,y) {
      if(performance.now() - lastClick > CLICK_TIMEOUT) {
@@ -328,7 +305,7 @@ const MESSAGE_HANDLERS = {
         if(data) {
             const [pos, state] = data
             const [x, y] = pos
-            if(state === 1) { click(x,y) }
+            
             requestAnimationFrame(() => {
                 drawCursor(x,y)
                 // else clear()
@@ -355,5 +332,24 @@ socket.addEventListener('message', (ev) => {
         throw new ReferenceError('Unknown state ' + currentState)
     }
 });
+
+
+requestIdleCallback(() => {
+    var links = document.links, i, length;
+
+    for (i = 0, length = links.length; i < length; i++) {
+        links[i].target == '_blank' && links[i].removeAttribute('target');
+    }
+})
+
+document.addEventListener('mouseup', event => {
+    // console.log("clicking...")
+    // socket.send(WebSocketMessages.CLICK)
+
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    event.preventDefault();
+    
+})
 
 })()
