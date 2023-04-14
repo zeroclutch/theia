@@ -81,15 +81,15 @@ def click(driver, x, y):
         offset_x = -round(elem.rect['x'] + elem.rect['width']  / 2)
         offset_y = -round(elem.rect['y'] + elem.rect['height'] / 2)
 
-        print(f"Offset at {offset_x}, {offset_y}")
-        print(f"Clicking at {pos_x}, {pos_y}")
+        # print(f"Offset at {offset_x}, {offset_y}")
+        # print(f"Clicking at {pos_x}, {pos_y}")
 
         # ActionChains(driver).move_to_element_with_offset(elem, offset_x, offset_y).move_by_offset(pos_x, pos_y).click().perform()
         action = ActionBuilder(driver, duration=1)
         action.pointer_action.move_to_location(pos_x, pos_y)
         action.pointer_action.click()
         action.perform()
-        print("Clicked!!!!")
+        # print("Clicked!!!!")
 
         # Continuous calibration
         # Flow: Queue click -> flash element -> log eye values + wait a minimum of 250ms -> perform click -> recompute calibration model

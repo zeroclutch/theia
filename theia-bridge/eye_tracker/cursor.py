@@ -2,6 +2,7 @@
 
 import math
 import time
+import numpy
 
 from . import gravity as g
 
@@ -17,6 +18,14 @@ class Cursor:
     buffer = []
     buffer_index = -1
 
+    std_x_buffer = []
+    std_y_buffer = []
+
+    w, h = 16, 9
+    mat_y = 0
+    mat_x = 0
+    done = False
+
     last_cursor_pos = []
     
     MAX_BUFFER_SIZE = 10 # can modify
@@ -26,8 +35,8 @@ class Cursor:
     OLD_COEFFICIENT = 1 - WEIGHTED_AVG_FACTOR / (MAX_BUFFER_SIZE - 1)
     LATEST_COEFFICIENT = 1 + WEIGHTED_AVG_FACTOR
 
-    MAX_STD_X = 0.125
-    MAX_STD_Y = 0.125
+    MAX_STD_X = 0.0
+    MAX_STD_Y = 0.0
     MAX_DIST = 0.1
 
     # Clicking
@@ -45,6 +54,10 @@ class Cursor:
     def __init__(self):
         self.buffer = [None] * self.MAX_BUFFER_SIZE
         self.gravity = gravity
+
+        # Calibration stuff
+        self.std_x_matrix = [[0 for x in range(self.w)] for y in range(self.h)] 
+        self.std_y_matrix = [[0 for x in range(self.w)] for y in range(self.h)] 
 
     def update(self, gaze_data):
         self.buffer_index += 1
@@ -83,8 +96,6 @@ class Cursor:
         # Find the standard deviation of the last 5 points
         sum_x = 0
         sum_y = 0
-        sum_x2 = 0
-        sum_y2 = 0
 
         # If we are too far from the target point, cancel the fixation
         if self.dist(self.buffer[i], self.last_cursor_pos) > self.MAX_DIST:
@@ -93,31 +104,75 @@ class Cursor:
         while i != max:
             # Weighted average/std dev
             # Care more about recent values
-            coefficient = self.OLD_COEFFICIENT
-            if i == self.buffer_index:
-                coefficient = self.LATEST_COEFFICIENT
+            # coefficient = self.OLD_COEFFICIENT
+            # if i == self.buffer_index:
+            #     coefficient = self.LATEST_COEFFICIENT
 
             x, y = self.buffer[i]
 
             # Add coefficients
-            x *= coefficient
-            y *= coefficient
+            # x *= coefficient
+            # y *= coefficient
 
             # Calculate mean and std dev
             sum_x += x
             sum_y += y
-            sum_x2 += x ** 2
-            sum_y2 += y ** 2
             i += 1
             i %= self.MAX_BUFFER_SIZE
         
-
         mean_x = sum_x / count
         mean_y = sum_y / count
-        std_x = math.sqrt(sum_x2 / count - mean_x ** 2)
-        std_y = math.sqrt(sum_y2 / count - mean_y ** 2)
 
-        # print (std_x, std_y)
+        var_x = 0
+        var_y = 0
+
+        # Make another pass to calculate std dev
+        i = self.buffer_index
+        while i != max:
+            x, y = self.buffer[i]
+
+            var_x += (x - mean_x) ** 2
+            var_y += (y - mean_y) ** 2
+
+            i += 1
+            i %= self.MAX_BUFFER_SIZE
+
+        std_x = math.sqrt(var_x / count)
+        std_y = math.sqrt(var_y / count)
+
+        print(std_x)
+        
+        if not math.isnan(std_x):
+            self.std_x_buffer.append(std_x)
+        if not math.isnan(std_y):
+            self.std_y_buffer.append(std_y)
+        
+        if(len(self.std_x_buffer) > 120):
+            input(f"Look at the coordinates ({self.mat_x+1}, {self.mat_y+1}). Hit enter when you're looking at it. Then stare at it for 2 seconds. ")
+
+            self.mat_x += 1
+            if self.mat_x == len(self.std_x_matrix[self.mat_y]):
+                self.mat_x = 0
+                self.mat_y += 1
+
+                if self.mat_y == len(self.std_x_matrix):
+                    print("done!")
+                    print(self.std_x_matrix)
+                    print(self.std_y_matrix)
+                    print("Copy the two arrays above and save them.")
+                    self.done = True
+                
+            # Remove the first 10 values of the buffers
+            del self.std_x_buffer[:10]
+            del self.std_y_buffer[:10]
+            
+            self.std_x_matrix[self.mat_y][self.mat_x] = numpy.average(a=self.std_x_buffer)
+            self.std_y_matrix[self.mat_y][self.mat_x] = numpy.average(a=self.std_y_buffer)
+            
+            self.std_x_buffer = []
+            self.std_y_buffer = []
+            
+        
         # print("std_x: {0}, std_y: {1}".format(std_x, std_y))
 
         # If the standard deviation is too high, the cursor is moving too fast

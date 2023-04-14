@@ -141,7 +141,7 @@ class Server:
         return (cursor_pos, cursor_state)
 
     def click(self, cursor_pos):
-        print(f"Should be clicking! {cursor_pos[0]} {cursor_pos[1]}")
+        # print(f"Should be clicking! {cursor_pos[0]} {cursor_pos[1]}")
 
         # Perform click actions
         web.click(self.driver, cursor_pos[0], cursor_pos[1])
