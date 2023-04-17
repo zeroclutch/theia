@@ -4,6 +4,8 @@ import math
 import time
 import numpy
 
+from scipy.interpolate import RegularGridInterpolator
+
 from . import gravity as g
 
 gravity = g.Gravity()
