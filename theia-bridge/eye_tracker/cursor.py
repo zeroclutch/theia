@@ -2,13 +2,13 @@
 
 import math
 import time
-import numpy
-
-from scipy.interpolate import RegularGridInterpolator
+import numpy as np
 
 from . import gravity as g
+from . import interpolate as i
 
 gravity = g.Gravity()
+interpolator = i.Interpolator()
 
 # States
 CURSOR_FIXATION = 1
@@ -58,6 +58,7 @@ class Cursor:
         self.gravity = gravity
 
         # Calibration stuff
+        self.CALIBRATION_MODE = False
         self.std_x_matrix = [[0 for x in range(self.w)] for y in range(self.h)] 
         self.std_y_matrix = [[0 for x in range(self.w)] for y in range(self.h)] 
 
@@ -142,43 +143,59 @@ class Cursor:
         std_x = math.sqrt(var_x / count)
         std_y = math.sqrt(var_y / count)
 
-        print(std_x)
-        
-        if not math.isnan(std_x):
-            self.std_x_buffer.append(std_x)
-        if not math.isnan(std_y):
-            self.std_y_buffer.append(std_y)
-        
-        if(len(self.std_x_buffer) > 120):
-            input(f"Look at the coordinates ({self.mat_x+1}, {self.mat_y+1}). Hit enter when you're looking at it. Then stare at it for 2 seconds. ")
+        if self.CALIBRATION_MODE is True:
+            if not math.isnan(std_x):
+                self.std_x_buffer.append(std_x)
+            if not math.isnan(std_y):
+                self.std_y_buffer.append(std_y)
+            
+            if(len(self.std_x_buffer) > 120):
+                input(f"Look at the coordinates ({self.mat_x+1}, {self.mat_y+1}). Hit enter when you're looking at it. Then stare at it for 2 seconds. ")
 
-            self.mat_x += 1
-            if self.mat_x == len(self.std_x_matrix[self.mat_y]):
-                self.mat_x = 0
-                self.mat_y += 1
+                self.mat_x += 1
+                if self.mat_x == len(self.std_x_matrix[self.mat_y]):
+                    self.mat_x = 0
+                    self.mat_y += 1
 
-                if self.mat_y == len(self.std_x_matrix):
-                    print("done!")
-                    print(self.std_x_matrix)
-                    print(self.std_y_matrix)
-                    print("Copy the two arrays above and save them.")
-                    self.done = True
+                    if self.mat_y == len(self.std_x_matrix):
+                        print("done!")
+                        print(self.std_x_matrix)
+                        print(self.std_y_matrix)
+                        print("Copy the two arrays above and save them.")
+                        self.done = True
+                    
+                # Remove the first 10 values of the buffers
+                del self.std_x_buffer[:10]
+                del self.std_y_buffer[:10]
                 
-            # Remove the first 10 values of the buffers
-            del self.std_x_buffer[:10]
-            del self.std_y_buffer[:10]
-            
-            self.std_x_matrix[self.mat_y][self.mat_x] = numpy.average(a=self.std_x_buffer)
-            self.std_y_matrix[self.mat_y][self.mat_x] = numpy.average(a=self.std_y_buffer)
-            
-            self.std_x_buffer = []
-            self.std_y_buffer = []
+                self.std_x_matrix[self.mat_y][self.mat_x] = np.average(a=self.std_x_buffer)
+                self.std_y_matrix[self.mat_y][self.mat_x] = np.average(a=self.std_y_buffer)
+                
+                self.std_x_buffer = []
+                self.std_y_buffer = []
             
         
         # print("std_x: {0}, std_y: {1}".format(std_x, std_y))
 
+        # Get std dev cutoffs at the current point
+        x, y = self.buffer[i]
+
+        max_std_x = self.MAX_STD_X # Fallback value
+        max_std_y = self.MAX_STD_Y # Fallback value
+
+        expected_std_dev = interpolator.get(x, y)
+        if expected_std_dev is not None:
+            max_std_x, max_std_y = expected_std_dev
+        else:  
+            print("Error: could not get interpolated values")
+
+        # n standard deviations away
+        n = 1
+        max_std_x *= n
+        max_std_y *= n
+
         # If the standard deviation is too high, the cursor is moving too fast
-        if std_x < self.MAX_STD_X or std_y < self.MAX_STD_Y:
+        if std_x < max_std_x or std_y < max_std_y:
             self.state = CURSOR_FIXATION
         else:
             self.state = CURSOR_SACCADE
