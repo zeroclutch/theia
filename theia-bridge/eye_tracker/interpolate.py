@@ -17,7 +17,7 @@ class Interpolator:
     def get(self, x, y):
         x *= self.W_DIM + 1
         y *= self.H_DIM + 1
-        print("Looking at:", x, y)
+        # print("Looking at:", x, y)
         return (
             self.get_x(np.array([y, x]))[0],
             self.get_y(np.array([y, x]))[0]

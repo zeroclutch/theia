@@ -58,7 +58,8 @@ Object.assign(drawCanvas.style, {
     backgroundColor: 'rgba(255,255,255,1)',
     top: '0',
     left: '0',
-    pointerEvents: 'none',
+    pointerEvents: 'none',// allows for click-through
+    // cursor: 'none',
     transition: 'all 0.5s ease-out'
 })
 
@@ -342,13 +343,15 @@ requestIdleCallback(() => {
     }
 })
 
-document.addEventListener('mouseup', event => {
-    // console.log("clicking...")
-    // socket.send(WebSocketMessages.CLICK)
+document.addEventListener('keydown', event => {
+    if(event.key === 'Control') {
+        console.log("clicking...")
+        socket.send(WebSocketMessages.CLICK)
+    }
 
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    event.preventDefault();
+    // event.stopPropagation();
+    // event.stopImmediatePropagation();
+    // event.preventDefault();
     
 })
 

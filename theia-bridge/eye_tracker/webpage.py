@@ -66,7 +66,7 @@ def get_nodes(driver):
 
 def click(driver, x, y):
     validate_driver(driver)
-    if x > 1 or x < 0 or y > 1 or y < 0:
+    if not (x <= 1 and x >= 0 and y <= 1 and y >= 0):
         return 0
     
     try:

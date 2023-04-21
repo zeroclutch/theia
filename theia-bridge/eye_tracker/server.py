@@ -119,15 +119,16 @@ class Server:
         (cursor_pos, cursor_state) = self.get_cursor_data()
         
         if self.cursor.should_click():
-            self.click(cursor_pos)
+            # self.click(cursor_pos)
+            pass
 
         await self.send(json.dumps([cursor_pos, cursor_state]), websocket)
 
     async def on_click(self, message, websocket):
-        print("received click")
         (cursor_pos, cursor_state) = self.get_cursor_data()
         self.click(cursor_pos)
-
+        await self.send("click ok", websocket)
+    
     ### End handlers ###
     def get_cursor_data(self):
         cursor_pos = None
@@ -141,7 +142,7 @@ class Server:
         return (cursor_pos, cursor_state)
 
     def click(self, cursor_pos):
-        # print(f"Should be clicking! {cursor_pos[0]} {cursor_pos[1]}")
+        print(f"Should be clicking! {cursor_pos[0]} {cursor_pos[1]}")
 
         # Perform click actions
         web.click(self.driver, cursor_pos[0], cursor_pos[1])
