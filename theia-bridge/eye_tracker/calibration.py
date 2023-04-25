@@ -38,7 +38,7 @@ def calibrate(calibration, point):
     print("Entered calibration mode for eye tracker.")
     print("Show a point on screen at {0}.".format(point))
 
-    time.sleep(0.5)
+    time.sleep(0.3)
 
     print("Collecting data at {0}.".format(point))
 
