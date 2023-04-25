@@ -44,7 +44,7 @@ def calibrate(calibration, point):
 
     calibration_success = None
     
-    for _ in range(0, 2):
+    for _ in range(0, 1):
         if calibration.collect_data(point.get('x'), point.get('y')) == tr.CALIBRATION_STATUS_SUCCESS:
             calibration_success = True
             print("Collected data at {0}.".format(point))
@@ -54,16 +54,16 @@ def calibrate(calibration, point):
     
     print("Calibration result: {0}.".format(calibration_success))
     
+    return calibration_success
+
+def end_calibration(calibration):
+    # calibration.compute_and_apply()
     print("Computing and applying calibration.")
     calibration_result = calibration.compute_and_apply()
     print("Compute and apply returned {0} and collected at {1} point.".
           format(calibration_result.status, len(calibration_result.calibration_points)))
-    
-    return calibration_success
-
-def end_calibration(calibration):
-    calibration.leave_calibration_mode()
     print("Left calibration mode for eye tracker.")
+    calibration.leave_calibration_mode()
 
 
 # via https://developer.tobiipro.com/tobii.research/python/reference/1.10.2.17-alpha-g85317f98/classtobii__research_1_1ScreenBasedCalibration.html

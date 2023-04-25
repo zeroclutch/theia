@@ -66,11 +66,14 @@ class Server:
         async for message in websocket:
             # print("Received message: " + message)
             handler = self.handlers.get(message)
-            if(handler):
+            
+            if self.state == 'calibrate':
+                await self.on_calibrate(message, websocket)
+            elif(handler):
                 await handler(message, websocket)
             else:
-                if self.state == 'calibrate':
-                    await self.on_calibrate(json.loads(message), websocket)
+                pass
+                # TODO: Consider error handling invalid messages
 
 
     async def send(self, data, websocket):
@@ -95,12 +98,13 @@ class Server:
     async def on_calibrate(self, message, websocket):
         if message == 'ready':
             calibration.end_calibration(self.calibration)
-            self.on_ready(self, message, websocket)
+            await self.on_ready(message, websocket)
         elif message == 'calibrate':
             self.calibration_state = 0
             await self.send(str(self.calibration_state), websocket)
         else:
             # If the last calibration was successful, do the next one
+            message = json.loads(message)
             if calibration.calibrate(self.calibration, message) is True:
                 self.calibration_state += 1
             await self.send(str(self.calibration_state), websocket)
@@ -152,6 +156,12 @@ class Server:
 
         # Calibrate a single point
         # TODO: add calibration
+        # self.calibration.enter_calibration_mode()
+        # calibration.calibrate(self.calibration, point={
+        #     'x': cursor_pos[0],
+        #     'y': cursor_pos[1]
+        # })
+        # calibration.end_calibration(self.calibration)
 
     # A function that is called every time there is new gaze data to be read.
     def gaze_data_callback(self, gaze_data):
