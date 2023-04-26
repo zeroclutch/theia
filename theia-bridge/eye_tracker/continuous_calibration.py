@@ -3,7 +3,7 @@ from . import calibration
 class ContinuousCalibration:
     MAX_POINTS = 5 # Accuracy vs speed trade-off
 
-    def __init__(self, eyetracker):
+    def __init__(self, eyetracker, type):
         self.eyetracker = eyetracker
 
         self.calibrations = [None] * self.MAX_POINTS
@@ -13,6 +13,8 @@ class ContinuousCalibration:
             self.calibrations[i] = calibration.create_calibration(eyetracker)
         
         self.calibrations[0].enter_calibration_mode()
+
+        self.type = type
             
 
 
@@ -31,19 +33,23 @@ class ContinuousCalibration:
         print("Left calibration mode for eye tracker.")
 
     def add_point(self, point):
-        success = True
+        success = None
+        if self.type == 'tobii':
+            success = True
 
-        print("Adding a point, number {0}".format(self.calibration_points))
-        for i in range(0, self.calibration_points):
-            # if any one fails, we consider it a failure
-            success = success and calibration.calibrate(self.calibrations[i], point)
-        
-        # Update number of points collected
-        if self.calibration_points < self.MAX_POINTS:
-            self.calibration_points += 1
+            print("Adding a point, number {0}".format(self.calibration_points))
+            for i in range(0, self.calibration_points + 1):
+                # if any one fails, we consider it a failure
+                success = success and calibration.calibrate(self.calibrations[i], point)
+            
+            # Update number of points collected
+            if self.calibration_points < self.MAX_POINTS:
+                self.calibration_points += 1
+            else:
+                # Shift
+                self.shift_calibrations()
         else:
-            # Shift
-            self.shift_calibrations()
+            success = calibration.calibrate(self.get_current(), point)
 
         return success
 

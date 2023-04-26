@@ -32,7 +32,7 @@ class Server:
     calibration = None
 
     # Settings
-    continuous_calibration_type = 'tobii' # Either 'none', 'tobii', or 'geometric'
+    continuous_calibration_type = 'none' # Either 'none', 'tobii', or 'geometric'
 
     # run server in a separate thread
     def __init__(self, eyetracker, driver):
@@ -53,7 +53,7 @@ class Server:
         self.driver = driver
         self.cursor = cursor
 
-        self.calibration = continuous_calibration.ContinuousCalibration(self.eyetracker)
+        self.calibration = continuous_calibration.ContinuousCalibration(self.eyetracker, self.continuous_calibration_type)
 
     # Function to be threaded
     def start_server(self):
@@ -138,7 +138,7 @@ class Server:
     async def on_click(self, message, websocket):
         (cursor_pos, cursor_state) = self.get_cursor_data()
         self.click(cursor_pos)
-        await self.send("click ok", websocket)
+        await self.send("{}", websocket)
     
     ### End handlers ###
     def get_cursor_data(self):
