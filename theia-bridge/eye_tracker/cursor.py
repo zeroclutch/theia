@@ -63,12 +63,17 @@ class Cursor:
         self.std_y_matrix = [[0 for x in range(self.w)] for y in range(self.h)] 
 
     def update(self, gaze_data):
+        x = self.avg(gaze_data['left_gaze_point_on_display_area'][0], gaze_data['right_gaze_point_on_display_area'][0])
+        y = self.avg(gaze_data['left_gaze_point_on_display_area'][1], gaze_data['right_gaze_point_on_display_area'][1])
+
+    
+        # If we got nan, ignore value
+        if math.isnan(x) or math.isnan(y):
+            return self.buffer_index
+
         self.buffer_index += 1
         if self.buffer_index >= self.MAX_BUFFER_SIZE:
             self.buffer_index = 0
-
-        x = self.avg(gaze_data['left_gaze_point_on_display_area'][0], gaze_data['right_gaze_point_on_display_area'][0])
-        y = self.avg(gaze_data['left_gaze_point_on_display_area'][1], gaze_data['right_gaze_point_on_display_area'][1])
 
         self.buffer[self.buffer_index] = (x, y)
 
@@ -85,8 +90,12 @@ class Cursor:
         return self.last_cursor_pos
     
     def get_adjusted_pos(self):
-        self.last_cursor_pos = self.gravity.apply_gravity(self.last_cursor_pos)
-        return self.last_cursor_pos
+        result = self.gravity.apply_gravity(self.last_cursor_pos)
+        if result is False:
+            return self.get_new_pos()
+        else:
+            self.last_cursor_pos = result
+            return self.last_cursor_pos
     
     def dist(self, a, b):
         return math.sqrt( math.pow(a[0] - b[0], 2) + math.pow(a[1] - b[1], 2) )

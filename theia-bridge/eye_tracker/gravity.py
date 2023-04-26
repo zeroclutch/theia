@@ -73,7 +73,7 @@ class Gravity:
             # print(f"Readjusting cursor from {cursor_pos[0]},{cursor_pos[1]} to {closest_node['x']},{closest_node['y']} ")
             return self.apply_node_gravity(cursor_pos, closest_distance, closest_direction)
         else:
-            return cursor_pos
+            return False
 
     def set_nodes(self, nodes):
         self.nodes = nodes

@@ -5,6 +5,7 @@ except ImportError:
     from . import mock_tobii_research as tr
 import time
 import sys
+import csv
 
 def init():
     eyetracker = get_eyetracker()
@@ -26,16 +27,17 @@ def get_eyetracker():
 
     return eyetracker
 
-def start_calibration(eyetracker):
+def create_calibration(eyetracker):
     calibration = tr.ScreenBasedCalibration(eyetracker)
-    calibration.enter_calibration_mode()
+    return calibration
+
+def start_calibration(eyetracker):
+    calibration = create_calibration(eyetracker)
     return calibration
 
 def calibrate(calibration, point):
     if(sys.platform == "darwin"):
         return True
-
-    print("Entered calibration mode for eye tracker.")
     print("Show a point on screen at {0}.".format(point))
 
     time.sleep(0.3)
@@ -62,8 +64,37 @@ def end_calibration(calibration):
     calibration_result = calibration.compute_and_apply()
     print("Compute and apply returned {0} and collected at {1} point.".
           format(calibration_result.status, len(calibration_result.calibration_points)))
-    print("Left calibration mode for eye tracker.")
-    calibration.leave_calibration_mode()
+    # print("Left calibration mode for eye tracker.")
+    # calibration.leave_calibration_mode()
+
+gaze_data_samples = []
+
+# via https://developer.tobiipro.com/tobii.research/python/reference/1.11.1.1-alpha-gca866d08/calibration_during_gaze_recording_8py-example.html
+def save_gaze_data(gaze_samples_list):
+     if not gaze_samples_list:
+         print("No gaze samples were collected. Skipping saving")
+         return
+     # To show what kinds of data are available in each sample's dictionary,
+     # we print the available keys here.
+     print("Sample dictionary keys:", gaze_samples_list[0].keys())
+     # This is meant to serve as a simple example of how you can save
+     # some of the gaze data - check the keys to see what else is available.
+     file_handle = open("my_gaze_data.csv", "w")
+     gaze_writer = csv.writer(file_handle)
+     gaze_writer.writerow(["time_seconds", "left_x", "left_y", "right_x", "right_y"])
+     start_time = gaze_samples_list[0]["system_time_stamp"]
+     for recording_dict in gaze_samples_list:
+         sample_time_from_start = recording_dict["system_time_stamp"] - start_time
+         # convert from microseconds to seconds
+         sample_time_from_start = sample_time_from_start / (10**(6))
+         # x is horizontal coordinate on the screen
+         # y is vertical coordinate on the screen
+         left_x, left_y  = recording_dict["left_gaze_point_on_display_area"]
+         right_x, right_y = recording_dict["right_gaze_point_on_display_area"]
+         gaze_writer.writerow(
+             [sample_time_from_start, left_x, left_y, right_x, right_y]
+         )
+     file_handle.close()
 
 
 # via https://developer.tobiipro.com/tobii.research/python/reference/1.10.2.17-alpha-g85317f98/classtobii__research_1_1ScreenBasedCalibration.html

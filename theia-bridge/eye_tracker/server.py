@@ -3,7 +3,7 @@ import threading
 import json
 
 from . import config
-from . import calibration
+from . import continuous_calibration
 
 from . import cursor as cur
 from . import webpage as web
@@ -31,6 +31,9 @@ class Server:
     calibration_state = 0 
     calibration = None
 
+    # Settings
+    continuous_calibration_type = 'tobii' # Either 'none', 'tobii', or 'geometric'
+
     # run server in a separate thread
     def __init__(self, eyetracker, driver):
         t = threading.Thread(target=self.start_server)
@@ -49,6 +52,8 @@ class Server:
         self.eyetracker = eyetracker
         self.driver = driver
         self.cursor = cursor
+
+        self.calibration = continuous_calibration.ContinuousCalibration(self.eyetracker)
 
     # Function to be threaded
     def start_server(self):
@@ -92,12 +97,14 @@ class Server:
             await self.send('ready!', websocket)
         else:
             self.state = 'calibrate'
-            self.calibration = calibration.start_calibration(self.eyetracker)
+            self.calibration.start()
             await self.send('calibrate!', websocket)
 
     async def on_calibrate(self, message, websocket):
         if message == 'ready':
-            calibration.end_calibration(self.calibration)
+            self.calibration.compute()
+            # with open('calibration.bin', 'wb') as f:
+            #     f.write(self.eyetracker.retrieve_calibration_data())
             await self.on_ready(message, websocket)
         elif message == 'calibrate':
             self.calibration_state = 0
@@ -105,7 +112,7 @@ class Server:
         else:
             # If the last calibration was successful, do the next one
             message = json.loads(message)
-            if calibration.calibrate(self.calibration, message) is True:
+            if self.calibration.add_point(message) is True:
                 self.calibration_state += 1
             await self.send(str(self.calibration_state), websocket)
 
@@ -154,14 +161,24 @@ class Server:
         # Update nodes on click
         self.cursor.gravity.set_nodes(web.get_nodes(self.driver))
 
-        # Calibrate a single point
-        # TODO: add calibration
-        # self.calibration.enter_calibration_mode()
-        # calibration.calibrate(self.calibration, point={
-        #     'x': cursor_pos[0],
-        #     'y': cursor_pos[1]
-        # })
-        # calibration.end_calibration(self.calibration)
+        if self.continuous_calibration_type == 'tobii':
+            # Calibrate a single point
+            self.calibration.start()
+            self.calibration.add_point({
+                'x': cursor_pos[0],
+                'y': cursor_pos[1]
+            }) 
+            current_calibration = self.calibration.get_current()
+            # TODO: This is not removing old points. This might be ok for short testing but we should figure that out.
+            compute_thread = threading.Thread(target=self.calibration.compute)
+            compute_thread.daemon = True
+            compute_thread.start()
+        elif self.continuous_calibration_type == 'geometric':
+            # Use correction matrix
+            pass
+        else:
+            # No form of continuous calibration (for testing)
+            pass
 
     # A function that is called every time there is new gaze data to be read.
     def gaze_data_callback(self, gaze_data):
