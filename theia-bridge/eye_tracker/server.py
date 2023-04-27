@@ -4,6 +4,7 @@ import json
 
 from . import config
 from . import continuous_calibration
+from . import continuous_correction
 
 from . import cursor as cur
 from . import webpage as web
@@ -32,7 +33,7 @@ class Server:
     calibration = None
 
     # Settings
-    continuous_calibration_type = 'none' # Either 'none', 'tobii', or 'geometric'
+    continuous_calibration_type = 'geometric' # Either 'none', 'tobii', or 'geometric'
 
     # run server in a separate thread
     def __init__(self, eyetracker, driver):
@@ -54,7 +55,7 @@ class Server:
         self.cursor = cursor
 
         self.calibration = continuous_calibration.ContinuousCalibration(self.eyetracker, self.continuous_calibration_type)
-
+        self.correction = continuous_correction.ContinuousCorrection(self.continuous_calibration_type)
     # Function to be threaded
     def start_server(self):
         print("Starting server on port " + str(config.PORT))
@@ -174,8 +175,9 @@ class Server:
             compute_thread.daemon = True
             compute_thread.start()
         elif self.continuous_calibration_type == 'geometric':
-            # Use correction matrix
-            pass
+            # add(etx, ety, cursorx, cursory)
+            eye_tracker_pos = self.cursor.get_raw_pos()
+            self.correction.add(eye_tracker_pos[0], eye_tracker_pos[1], cursor_pos[0], cursor_pos[1])
         else:
             # No form of continuous calibration (for testing)
             pass
@@ -183,7 +185,7 @@ class Server:
     # A function that is called every time there is new gaze data to be read.
     def gaze_data_callback(self, gaze_data):
         if(self.cursor is not None):
-            self.cursor.update(gaze_data)
+            self.cursor.update(gaze_data, self.correction)
             
         
     def stop(self):

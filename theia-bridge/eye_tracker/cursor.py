@@ -62,11 +62,14 @@ class Cursor:
         self.std_x_matrix = [[0 for x in range(self.w)] for y in range(self.h)] 
         self.std_y_matrix = [[0 for x in range(self.w)] for y in range(self.h)] 
 
-    def update(self, gaze_data):
+    def update(self, gaze_data, correction):
         x = self.avg(gaze_data['left_gaze_point_on_display_area'][0], gaze_data['right_gaze_point_on_display_area'][0])
         y = self.avg(gaze_data['left_gaze_point_on_display_area'][1], gaze_data['right_gaze_point_on_display_area'][1])
 
-    
+        # Perform continuous correction
+        # If it is disabled, this will just return x,y
+        x,y = correction.map(x, y)
+
         # If we got nan, ignore value
         if math.isnan(x) or math.isnan(y):
             return self.buffer_index
@@ -96,6 +99,9 @@ class Cursor:
         else:
             self.last_cursor_pos = result
             return self.last_cursor_pos
+        
+    def get_raw_pos(self):
+        return self.buffer[self.buffer_index]
     
     def dist(self, a, b):
         return math.sqrt( math.pow(a[0] - b[0], 2) + math.pow(a[1] - b[1], 2) )
