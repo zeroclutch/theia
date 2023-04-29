@@ -20,10 +20,10 @@ const Options = {
 // Create WebSocket connection.
 const socket = new WebSocket('ws://localhost:8888');
 const States = {
-AWAITING_CALIBRATION: Symbol(0),
-CALIBRATING: Symbol(1),
-NOT_READY: Symbol(2),
-READY: Symbol(3),
+    AWAITING_CALIBRATION: Symbol(0),
+    CALIBRATING: Symbol(1),
+    NOT_READY: Symbol(2),
+    READY: Symbol(3),
 }
 
 // A list of string messages that we can send to the server
@@ -34,6 +34,7 @@ const WebSocketMessages = {
     READY: 'ready',
     GET: 'get',
     CLICK: 'click',
+    CLOSE: 'close',
 }
 
 const POLLING_INTERVAL = 100
@@ -43,7 +44,7 @@ const FRAME_DURATION = 1000 / 60
 let currentState = States.AWAITING_CALIBRATION
 
 // Clicking
-const CLICK_TIMEOUT = 500
+const CLICK_TIMEOUT = 0
 let lastClick = performance.now()
 
 // Draw cursor
@@ -344,15 +345,20 @@ requestIdleCallback(() => {
 })
 
 document.addEventListener('keydown', event => {
-    if(event.key === 'Control') {
-        console.log("clicking...")
+    if(event.key === 'Control' || event.key === 'Enter') {
+        console.log("clicking......")
         socket.send(WebSocketMessages.CLICK)
     }
 
-    // event.stopPropagation();
-    // event.stopImmediatePropagation();
-    // event.preventDefault();
+    event.stopPropagation();
+    event.stopImmediatePropagation();
+    event.preventDefault();
     
+})
+
+document.addEventListener('beforeunload', event => {
+    // Normal closure
+    socket.send(WebSocketMessages.CLOSE)
 })
 
 })()

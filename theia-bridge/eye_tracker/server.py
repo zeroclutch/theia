@@ -33,7 +33,7 @@ class Server:
     calibration = None
 
     # Settings
-    continuous_calibration_type = 'geometric' # Either 'none', 'tobii', or 'geometric'
+    continuous_calibration_type = 'none' # Either 'none', 'tobii', or 'geometric'
 
     # run server in a separate thread
     def __init__(self, eyetracker, driver):
@@ -48,11 +48,17 @@ class Server:
             'awaiting_calibration': self.on_awaiting_calibration,
             'calibrate': self.on_calibrate,
             'click': self.on_click,
+            'close': self.on_close,
         }
 
         self.eyetracker = eyetracker
         self.driver = driver
         self.cursor = cursor
+
+        if config.CONTINUOUS_CORRECTION is True:
+            self.continuous_calibration_type = 'geometric'
+        else:
+            self.continuous_calibration_type = 'none'
 
         self.calibration = continuous_calibration.ContinuousCalibration(self.eyetracker, self.continuous_calibration_type)
         self.correction = continuous_correction.ContinuousCorrection(self.continuous_calibration_type)
@@ -139,7 +145,10 @@ class Server:
     async def on_click(self, message, websocket):
         (cursor_pos, cursor_state) = self.get_cursor_data()
         self.click(cursor_pos)
-        await self.send("{}", websocket)
+        # await self.send("{}", websocket) # do not send messages that aren't cursor pos during ready state
+
+    async def on_close(self, message, websocket):
+        websocket.close()
     
     ### End handlers ###
     def get_cursor_data(self):

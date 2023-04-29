@@ -7,6 +7,8 @@ import numpy as np
 from . import gravity as g
 from . import interpolate as i
 
+from . import config
+
 gravity = g.Gravity()
 interpolator = i.Interpolator()
 
@@ -71,8 +73,9 @@ class Cursor:
         x,y = correction.map(x, y)
 
         # If we got nan, ignore value
-        if math.isnan(x) or math.isnan(y):
-            return self.buffer_index
+        if config.ERROR_FILTERING is True:
+            if math.isnan(x) or math.isnan(y):
+                return self.buffer_index
 
         self.buffer_index += 1
         if self.buffer_index >= self.MAX_BUFFER_SIZE:
@@ -93,7 +96,12 @@ class Cursor:
         return self.last_cursor_pos
     
     def get_adjusted_pos(self):
-        result = self.gravity.apply_gravity(self.last_cursor_pos)
+
+        # Only apply gravity for fixations and when it is enabled
+        result = False
+        if config.GRAVITATIONAL_MODEL is True:
+            result = self.gravity.apply_gravity(self.last_cursor_pos)
+
         if result is False:
             return self.get_new_pos()
         else:
@@ -116,7 +124,7 @@ class Cursor:
         sum_y = 0
 
         # If we are too far from the target point, cancel the fixation
-        if self.dist(self.buffer[i], self.last_cursor_pos) > self.MAX_DIST:
+        if config.SACCADE_DETECTION is True and (self.dist(self.buffer[i], self.last_cursor_pos) > self.MAX_DIST):
             return CURSOR_SACCADE
             
         while i != max:
@@ -198,11 +206,12 @@ class Cursor:
         max_std_x = self.MAX_STD_X # Fallback value
         max_std_y = self.MAX_STD_Y # Fallback value
 
-        expected_std_dev = interpolator.get(x, y)
-        if expected_std_dev is not None:
-            max_std_x, max_std_y = expected_std_dev
-        else:  
-            print("Error: could not get interpolated values")
+        if config.EYE_TRACKER_CORRECTION is False:
+            expected_std_dev = interpolator.get(x, y)
+            if expected_std_dev is not None:
+                max_std_x, max_std_y = expected_std_dev
+            else:  
+                print("Error: could not get interpolated values")
 
         # n standard deviations away
         n = 1
