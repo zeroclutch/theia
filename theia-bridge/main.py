@@ -24,7 +24,7 @@ def cleanup():
 eyetracker = calibration.init()
 driver = web.init()
 server = Server(eyetracker, driver)
-web.navigate(driver, "https://jsfiddle.net/1su3nozL/show/")
+web.navigate(driver, "https://wikipedia.org/")
 datastream.init(eyetracker, server.gaze_data_callback)
 
 try:

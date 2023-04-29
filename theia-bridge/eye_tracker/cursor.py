@@ -39,8 +39,8 @@ class Cursor:
     OLD_COEFFICIENT = 1 - WEIGHTED_AVG_FACTOR / (MAX_BUFFER_SIZE - 1)
     LATEST_COEFFICIENT = 1 + WEIGHTED_AVG_FACTOR
 
-    MAX_STD_X = 0.0
-    MAX_STD_Y = 0.0
+    MAX_STD_X = 0.1
+    MAX_STD_Y = 0.1
     MAX_DIST = 0.1
 
     # Clicking
@@ -124,7 +124,7 @@ class Cursor:
         sum_y = 0
 
         # If we are too far from the target point, cancel the fixation
-        if config.SACCADE_DETECTION is True and (self.dist(self.buffer[i], self.last_cursor_pos) > self.MAX_DIST):
+        if (config.SACCADE_DETECTION is True) and (self.dist(self.buffer[i], self.last_cursor_pos) > self.MAX_DIST):
             return CURSOR_SACCADE
             
         while i != max:
