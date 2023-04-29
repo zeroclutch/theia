@@ -1,0 +1,83 @@
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: repeat(16, 1fr);
+            grid-template-rows: repeat(9, 1fr);
+            grid-gap: 15px;
+            width: 95%;
+            height: 95%;
+        }
+        .dot {
+            width: 50%;
+            height: 50%;
+            background-color: red;
+            border-radius: 50%;
+        }
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const container = document.createElement('div');
+            container.className = 'container';
+            document.body.appendChild(container);
+
+            const dots = [];
+            const numDots = 144;
+
+            for (let i = 0; i < numDots; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                container.appendChild(dot);
+                dots.push(dot);
+            }
+
+            function setRandomBlueDot() {
+                const blueIndex = Math.floor(Math.random() * numDots);
+                dots.forEach((dot, index) => {
+                    dot.style.backgroundColor = index === blueIndex ? 'blue' : 'red';
+                });
+                return blueIndex;
+            }
+
+            let blueDotIndex = setRandomBlueDot();
+
+            let clickCount = 0;
+            let misclickCount = 0;
+
+            const clickCountDisplay = document.createElement('div');
+            clickCountDisplay.style.position = 'absolute';
+            clickCountDisplay.style.left = '0px';
+            clickCountDisplay.style.top = '0px';
+            clickCountDisplay.innerHTML = 'Clicks: 0 | Misclicks: 0';
+            document.body.appendChild(clickCountDisplay);
+
+            dots.forEach((dot, index) => {
+                dot.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                    if (index === blueDotIndex) {
+                        clickCount++;
+                    } else {
+                        misclickCount++;
+                    }
+                    clickCountDisplay.innerHTML = 'Clicks: ' + clickCount + ' | Misclicks: ' + misclickCount;
+                    blueDotIndex = setRandomBlueDot();
+                });
+            });
+
+        });
+    </script>
+</head>
+<body>
+</body>
+</html>

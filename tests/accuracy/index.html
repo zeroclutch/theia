@@ -1,0 +1,53 @@
+<html>
+    <head>
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+                height: 100vh;
+                width: 100vw;
+                position: relative;
+            }
+        </style>
+        <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var dot = document.createElement('div');
+            dot.style.position = 'absolute';
+            dot.style.width = '60px';
+            dot.style.height = '80px';
+            dot.style.backgroundColor = 'red';
+            dot.style.borderRadius = '5px';
+
+            function updatePosition() {
+            dot.style.top = Math.random() * (window.innerHeight - parseInt(dot.style.height, 10)) + 'px';
+            dot.style.left = Math.random() * (window.innerWidth - parseInt(dot.style.width, 10)) + 'px';
+            }
+
+            updatePosition();
+            document.body.appendChild(dot);
+
+            var clicks = 0;
+            var misclicks = 0;
+
+            var clickCounter = document.createElement('div');
+            clickCounter.innerHTML = 'Clicks: ' + clicks + ' | Misclicks: ' + misclicks;
+            document.body.appendChild(clickCounter);
+
+            dot.onclick = function(event) {
+            event.stopPropagation();
+            clicks++;
+            clickCounter.innerHTML = 'Clicks: ' + clicks + ' | Misclicks: ' + misclicks;
+            updatePosition();
+            };
+
+            document.body.addEventListener('click', function() {
+            misclicks++;
+            clickCounter.innerHTML = 'Clicks: ' + clicks + ' | Misclicks: ' + misclicks;
+            }, false);
+
+            });
+        </script>
+    </head>
+    <body>
+    </body>
+</html>

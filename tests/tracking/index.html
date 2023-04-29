@@ -1,0 +1,69 @@
+<html>
+    <head>
+        <style>
+            body {
+                margin: 0;
+                overflow: hidden;
+                height: 100vh;
+                width: 100vw;
+                position: relative;
+            }
+        </style>
+        <script>
+        document.addEventListener("DOMContentLoaded", function() {
+
+var dot = document.createElement('div');
+dot.style.position = 'absolute';
+dot.style.width = '60px';
+dot.style.height = '60px';
+dot.style.backgroundColor = 'red';
+dot.style.borderRadius = '30px';
+document.body.appendChild(dot);
+var x = 0;
+var y = 0;
+var xVel = 1;
+var yVel = 1;
+var dotWidth = parseInt(dot.style.width, 10);
+var dotHeight = parseInt(dot.style.height, 10);
+var interval = setInterval(function() {
+  x += xVel;
+  y += yVel;
+  if (x < 0 || x > window.innerWidth - dotWidth) {
+    xVel *= -1;
+  }
+  if (y < 0 || y > window.innerHeight - dotHeight) {
+    yVel *= -1;
+  }
+  dot.style.left = x + 'px';
+  dot.style.top = y + 'px';
+}, 10);
+
+var clickCount = 0;
+var misclickCount = 0;
+var clickCountDisplay = document.createElement('div');
+clickCountDisplay.style.position = 'absolute';
+clickCountDisplay.style.left = '0px';
+clickCountDisplay.style.top = '0px';
+clickCountDisplay.innerHTML = 'Clicks: 0 | Misclicks: 0';
+document.body.appendChild(clickCountDisplay);
+
+dot.addEventListener('click', function(event) {
+  event.stopPropagation();
+  clickCount++;
+  clickCountDisplay.innerHTML = 'Clicks: ' + clickCount + ' | Misclicks: ' + misclickCount;
+});
+
+xVel *= 2;
+yVel *= 2;
+
+document.body.addEventListener('click', function() {
+  misclickCount++;
+  clickCountDisplay.innerHTML = 'Clicks: ' + clickCount + ' | Misclicks: ' + misclickCount;
+}, false);
+
+});
+        </script>
+    </head>
+    <body>
+    </body>
+</html>
