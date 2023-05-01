@@ -8,10 +8,15 @@
                 width: 100vw;
                 position: relative;
             }
+            
+            button {
+              border: none;
+            }
         </style>
         <script>
         document.addEventListener("DOMContentLoaded", function() {
-            var dot = document.createElement('div');
+            var dot = document.createElement('button');
+            dot.style.display = 'block';
             dot.style.position = 'absolute';
             dot.style.width = '60px';
             dot.style.height = '80px';

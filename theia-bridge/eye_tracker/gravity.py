@@ -76,5 +76,5 @@ class Gravity:
             return False
 
     def set_nodes(self, nodes):
-        print("Received {0} nodes".format(len(nodes)))
+        # print("Received {0} nodes".format(len(nodes)))
         self.nodes = nodes

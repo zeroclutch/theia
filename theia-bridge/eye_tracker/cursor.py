@@ -41,6 +41,11 @@ class Cursor:
 
     MAX_STD_X = 0.1
     MAX_STD_Y = 0.1
+
+
+
+
+    
     MAX_DIST = 0.1
 
     # Clicking

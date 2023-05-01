@@ -3,12 +3,16 @@ import eye_tracker.datastream as datastream
 from eye_tracker.server import Server
 import eye_tracker.webpage as web
 import asyncio
+import threading
+
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 stop_signal = asyncio.Future()
 
 # Initialize software
 async def keep_alive():
     await stop_signal # run until stop_signal is set
+    
 
 def cleanup():
     # Cleanup
@@ -24,7 +28,7 @@ def cleanup():
 eyetracker = calibration.init()
 driver = web.init()
 server = Server(eyetracker, driver)
-web.navigate(driver, "https://wikipedia.org/")
+web.navigate(driver, "http://localhost:9000/")
 datastream.init(eyetracker, server.gaze_data_callback)
 
 try:

@@ -24,6 +24,9 @@
             background-color: red;
             border-radius: 50%;
         }
+            button {
+              border: none;
+            }
     </style>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
@@ -36,7 +39,7 @@
             const numDots = 144;
 
             for (let i = 0; i < numDots; i++) {
-                const dot = document.createElement('div');
+                const dot = document.createElement('button');
                 dot.className = 'dot';
                 container.appendChild(dot);
                 dots.push(dot);
